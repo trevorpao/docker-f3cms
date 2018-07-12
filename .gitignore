@@ -8,10 +8,13 @@ log/php/*
 log/nginx/*
 
 # www
+www/pma
 
 # database
 ib*
 *.opt
 database/*.cnf
+database/**/*.frm
+database/**/*.ibd
 database/mysql/*
 database/performance_schema/*

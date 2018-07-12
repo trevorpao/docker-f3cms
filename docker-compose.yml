@@ -5,7 +5,7 @@ services:
         restart: always
         container_name: nginx
         depends_on:
-            - mysql
+            - mariadb
             - php-fpm
         volumes:
             - ${APACHE_WWW_PATH}:/var/www/html
@@ -21,9 +21,14 @@ services:
         image: dmiseev/php-fpm7.2
         restart: always
         container_name: php-fpm
+        depends_on:
+            - mariadb
+        links:
+            - mariadb
         volumes:
             - ${APACHE_WWW_PATH}:/var/www/html
-            - ./conf/php/php-ini-overrides.ini:/usr/local/etc/php/conf.d/php-ini-overrides.ini
+            - ${MYSQL_DATA_PATH}:/var/lib/mysql
+            - ./conf/php/php-ini-overrides.ini:/etc/php/7.2/fpm/conf.d/php-ini-overrides.ini
             - ./conf/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
         working_dir: /var/www/html
 
@@ -40,15 +45,17 @@ services:
     #         - ${APACHE_CONF_PATH}:/etc/apache2/custom-conf
     #         - ${PHP_CONF_PATH}:/usr/local/etc/php/conf.d
 
-    mysql:
-        image: mysql:8.0
-
+    mariadb:
+        image: mariadb:10
+        container_name: mariadb
+        restart: always
         ports:
             - "${MYSQL_PORT}:3306"
         volumes:
             - ${MYSQL_DATA_PATH}:/var/lib/mysql
             - ${MYSQL_LOG_PATH}:/var/log/mysql
-            - ${MYSQL_CONF_PATH}:/etc/mysql/my.cnf
+            - ${MYSQL_CONF_PATH}my.cnf:/etc/mysql/conf.d/settings.cnf
+            - ${MYSQL_CONF_PATH}docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
         command: ['mysqld', '--character-set-server=utf8']
         environment:
             - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
@@ -58,6 +65,7 @@ services:
             - TZ=Asia/Taipei
     redis:
         image: redis:latest
+        container_name: redis
 volumes:
   run_vol:
     driver_opts:
