@@ -1,4 +1,4 @@
-version: '3'
+version: '3.3'
 services:
     web-server:
         image: nginx:alpine
@@ -16,6 +16,9 @@ services:
         ports:
             - "${APACHE_HOST_HTTP_PORT}:80"
             - "${APACHE_HOST_HTTPS_PORT}:443"
+        # networks:
+        #     - elk_net
+        #     - default
 
     php-fpm:
         image: dmiseev/php-fpm7.2
@@ -51,6 +54,9 @@ services:
         restart: always
         ports:
             - "${MYSQL_PORT}:3306"
+        # networks:
+        #     - elk_net
+        #     - default
         volumes:
             - ${MYSQL_DATA_PATH}:/var/lib/mysql
             - ${MYSQL_LOG_PATH}:/var/log/mysql
@@ -67,7 +73,11 @@ services:
         image: redis:latest
         container_name: redis
 volumes:
-  run_vol:
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
+    run_vol:
+        driver_opts:
+            type: tmpfs
+            device: tmpfs
+# networks:
+#     elk_net:
+#         external:
+#             name: elk
