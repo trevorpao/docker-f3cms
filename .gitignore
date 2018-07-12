@@ -5,9 +5,9 @@
 log/apache/*
 log/mysql/*
 log/php/*
+log/nginx/*
 
 # www
-www/
 
 # database
 ib*

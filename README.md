@@ -41,7 +41,7 @@ www            website 網站位置
 
 ### .env (local folder)
 
-```bash
+```
 ### apache ######
 
 APACHE_HOST_HTTP_PORT=80                // http port  
@@ -82,3 +82,8 @@ MYSQL_DATA_PATH=./database              // mysql data path
 ### close the container
 
  `./down.sh`  
+
+ ------
+
+ ### server test
+ `http://0.0.0.0:8080/`

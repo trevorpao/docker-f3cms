@@ -1,7 +1,7 @@
 FROM php:5.6-apache
 MAINTAINER Wayne <me@weien.tw>
 
-RUN requirements="nano cron mysql-client-5.5 libpng12-dev libmcrypt-dev libmcrypt4 libcurl3-dev libxml2-dev libfreetype6 libjpeg62-turbo libpng12-dev libfreetype6-dev libjpeg62-turbo-dev libmagickwand-dev" \
+RUN requirements="nano cron mariadb-client-10.1 libpng-dev libmcrypt-dev libmcrypt4 libcurl3-dev libxml2-dev libfreetype6 libjpeg62-turbo libfreetype6-dev libjpeg62-turbo-dev libmagickwand-dev" \
     && apt-get update && apt-get install -y --no-install-recommends $requirements && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-install pdo pdo_mysql \
     && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
@@ -12,7 +12,7 @@ RUN requirements="nano cron mysql-client-5.5 libpng12-dev libmcrypt-dev libmcryp
     && docker-php-ext-install mysqli \
     && pecl install imagick \
     && docker-php-ext-enable imagick \
-    && requirementsToRemove="libpng12-dev libmcrypt-dev libcurl3-dev libxml2-dev libpng12-dev libfreetype6-dev libjpeg62-turbo-dev" \
+    && requirementsToRemove="libmcrypt-dev libcurl3-dev libxml2-dev libpng12-dev libfreetype6-dev libjpeg62-turbo-dev" \
     && apt-get purge --auto-remove -y $requirementsToRemove
 
 ## build custom conf
