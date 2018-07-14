@@ -8,12 +8,16 @@ log/php/*
 log/nginx/*
 
 # www
-www/pma
+www/pma/*
+!www/pma/config.sample.inc.php
+www/vendor/*
+!www/vendor/.gitkeep
 
 # database
 ib*
 *.opt
 database/*.cnf
+database/*.log
 database/aria_lo*
 database/**/*.frm
 database/**/*.ibd
