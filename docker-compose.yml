@@ -9,6 +9,8 @@ services:
             - php-fpm
         volumes:
             - ${APACHE_WWW_PATH}:/var/www/html
+            - ${APACHE_PMA_PATH}:/var/www/html/pma
+            - ./www/vendor/:/var/www/vendor/
             - ./conf/nginx/nginx.conf:/etc/nginx/nginx.conf
             - ./log/nginx/:/var/log/nginx/
             - ./conf/nginx/sites/default.conf:/etc/nginx/conf.d/default.conf
@@ -30,7 +32,9 @@ services:
             - mariadb
         volumes:
             - ${APACHE_WWW_PATH}:/var/www/html
+            - ${APACHE_PMA_PATH}:/var/www/html/pma
             - ${MYSQL_DATA_PATH}:/var/lib/mysql
+            - ./www/vendor/:/var/www/vendor/
             - ./conf/php/php-ini-overrides.ini:/etc/php/7.2/fpm/conf.d/php-ini-overrides.ini
             - ./conf/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
         working_dir: /var/www/html
