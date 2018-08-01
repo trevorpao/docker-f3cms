@@ -4,3 +4,4 @@
 [submodule "operonjs"]
 	path = operonjs
 	url = https://github.com/trevorpao/operon.git
+	branch = f3cms
