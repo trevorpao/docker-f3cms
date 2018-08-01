@@ -1,3 +1,6 @@
 [submodule "www/f3cms"]
 	path = www/f3cms
 	url = https://github.com/trevorpao/f3cms.git
+[submodule "operonjs"]
+	path = operonjs
+	url = https://github.com/trevorpao/operon.git
