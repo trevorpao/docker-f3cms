@@ -9,7 +9,7 @@ log/nginx/*
 
 # www
 www/pma/*
-!www/pma/config.sample.inc.php
+!www/pma/config.inc.php
 www/vendor/*
 !www/vendor/.gitkeep
 
