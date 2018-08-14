@@ -23,7 +23,7 @@ services:
         #     - default
 
     php-fpm:
-        image: dmiseev/php-fpm7.2
+        image: andygott/php-fpm-alpine-imagick
         restart: always
         container_name: php-fpm
         depends_on:
