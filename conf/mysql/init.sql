@@ -478,7 +478,7 @@ CREATE TABLE `tbl_post_tag` (
 
 CREATE TABLE `tbl_press` (
   `id` int(11) NOT NULL,
-  `status` enum('Disabled','Enabled') DEFAULT 'Disabled',
+  `status` enum('Draft','Published','Scheduled','Changed','Offlined') NOT NULL DEFAULT 'Draft',
   `mode` enum('Article','Slide') NOT NULL DEFAULT 'Article',
   `on_homepage` enum('Yes','No') NOT NULL DEFAULT 'No',
   `on_top` enum('Yes','No') NOT NULL DEFAULT 'No',
@@ -496,7 +496,7 @@ CREATE TABLE `tbl_press` (
 --
 
 INSERT INTO `tbl_press` (`id`, `status`, `mode`, `on_homepage`, `on_top`, `slug`, `online_date`, `cover`, `last_ts`, `last_user`, `insert_ts`, `insert_user`) VALUES
-(2, 'Disabled', 'Article', 'No', 'No', 'twbwood-com', '0000-00-00', '/upload/img/2018/08/666601b99690dbb.png', '2018-08-20 06:09:50', 1, '2018-08-20 06:02:39', 1);
+(2, 'Published', 'Article', 'No', 'No', 'twbwood-com', '0000-00-00', '/upload/img/2018/08/666601b99690dbb.png', '2018-08-20 06:09:50', 1, '2018-08-20 06:02:39', 1);
 
 -- --------------------------------------------------------
 
