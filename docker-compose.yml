@@ -10,7 +10,7 @@ services:
         volumes:
             - ${APACHE_WWW_PATH}:/var/www/html
             - ${APACHE_PMA_PATH}:/var/www/html/pma
-            - ./www/vendor/:/var/www/html/vendor/
+            - ${APACHE_WWW_PATH}/vendor/:/var/www/html/vendor/
             - ./conf/nginx/nginx.conf:/etc/nginx/nginx.conf
             - ./conf/nginx/letsencrypt:/etc/nginx/letsencrypt
             - ./log/nginx/:/var/log/nginx/
@@ -36,7 +36,7 @@ services:
             - ${APACHE_WWW_PATH}:/var/www/html
             - ${APACHE_PMA_PATH}:/var/www/html/pma
             - ${MYSQL_DATA_PATH}:/var/lib/mysql
-            - ./www/vendor/:/var/www/html/vendor/
+            - ${APACHE_WWW_PATH}/vendor/:/var/www/html/vendor/
             - ./conf/php/php-ini-overrides.ini:/etc/php/7.2/fpm/conf.d/php-ini-overrides.ini
             - ./conf/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
         working_dir: /var/www/html
