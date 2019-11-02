@@ -1,35 +1,113 @@
-FROM php:5.6-apache
-MAINTAINER Wayne <me@weien.tw>
+ARG     PHP_VERSION=7.2
 
-RUN requirements="nano cron mariadb-client-10.1 libpng-dev libmcrypt-dev libmcrypt4 libcurl3-dev libxml2-dev libfreetype6 libjpeg62-turbo libfreetype6-dev libjpeg62-turbo-dev libmagickwand-dev" \
-    && apt-get update && apt-get install -y --no-install-recommends $requirements && rm -rf /var/lib/apt/lists/* \
-    && docker-php-ext-install pdo pdo_mysql \
-    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
-    && docker-php-ext-install gd \
-    && docker-php-ext-install mcrypt \
-    && docker-php-ext-install mbstring \
-    && docker-php-ext-install soap \
-    && docker-php-ext-install mysqli \
-    && pecl install imagick \
-    && docker-php-ext-enable imagick \
-    && requirementsToRemove="libmcrypt-dev libcurl3-dev libxml2-dev libpng12-dev libfreetype6-dev libjpeg62-turbo-dev" \
-    && apt-get purge --auto-remove -y $requirementsToRemove
+FROM    php:${PHP_VERSION}-fpm-alpine
 
-## build custom conf
-RUN mkdir -p  /etc/apache2/custom-conf
-RUN echo "" >> /etc/apache2/apache2.conf \
-    && echo "# Include the configurations from the host machine" >> /etc/apache2/apache2.conf \
-    && echo "IncludeOptional custom-conf/*.conf" >> /etc/apache2/apache2.conf
+ENV     PHPREDIS_VERSION="4.1.1"
 
-RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/ssl-cert-snakeoil.key -out /etc/ssl/certs/ssl-cert-snakeoil.pem -subj "/C=TW/ST=Taiwan/L=Taipei/O=Security/OU=Development/CN=local.host"
+ADD     http://downloads3.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz /tmp/
+ADD     https://github.com/phpredis/phpredis/archive/${PHPREDIS_VERSION}.tar.gz /tmp/
 
-RUN a2enmod rewrite
-RUN a2ensite default-ssl
-RUN a2enmod ssl
-RUN a2enmod headers
-RUN a2enmod proxy
-RUN a2enmod proxy_http
-RUN a2enmod proxy_wstunnel
+RUN     apk update                       && \
+        \
+        apk upgrade                      && \
+        \
+        docker-php-source extract        && \
+        \
+        apk add --no-cache                  \
+            --virtual .build-dependencies   \
+                $PHPIZE_DEPS                \
+                zlib-dev                    \
+                cyrus-sasl-dev              \
+                git                         \
+                autoconf                    \
+                g++                         \
+                libtool                     \
+                make                        \
+                pcre-dev                 && \
+        \
+        apk add --no-cache                  \
+            tini                            \
+            libintl                         \
+            icu                             \
+            icu-dev                         \
+            libxml2-dev                     \
+            postgresql-dev                  \
+            freetype-dev                    \
+            libjpeg-turbo-dev               \
+            libpng-dev                      \
+            gmp                             \
+            gmp-dev                         \
+            imagemagick                     \
+            libmemcached-dev                \
+            imagemagick-dev                 \
+            libssh2                         \
+            bash                            \
+            libssh2-dev                     \
+            libxslt-dev                  && \
+        \
+        tar xfz /tmp/${PHPREDIS_VERSION}.tar.gz   && \
+        \
+        mv phpredis-$PHPREDIS_VERSION /usr/src/php/ext/redis    && \
+        \
+        git clone https://github.com/php-memcached-dev/php-memcached.git /usr/src/php/ext/memcached/    && \
+        \
+        docker-php-ext-configure memcached      &&  \
+        \
+        docker-php-ext-configure gd                 \
+            --with-freetype-dir=/usr/include/       \
+            --with-jpeg-dir=/usr/include/       &&  \
+        \
+        docker-php-ext-install -j"$(getconf _NPROCESSORS_ONLN)" \
+            intl                                                \
+            bcmath                                              \
+            xsl                                                 \
+            zip                                                 \
+            soap                                                \
+            mysqli                                              \
+            pdo                                                 \
+            pdo_mysql                                           \
+            pdo_pgsql                                           \
+            gmp                                                 \
+            redis                                               \
+            iconv                                               \
+            gd                                                  \
+            pcntl                                               \
+            memcached                                       &&  \
+        \
+        tar -xvzf /tmp/ioncube_loaders_lin_x86-64.tar.gz -C /tmp/   &&  \
+        \
+        mkdir -p /usr/local/php/ext/ioncube                         &&  \
+        \
+        cp  /tmp/ioncube/ioncube_loader_lin_${PHP_VERSION%.*}.so        \
+            /usr/local/php/ext/ioncube/.                            &&  \
+        \
+        docker-php-ext-configure opcache --enable-opcache           &&  \
+        \
+        docker-php-ext-install opcache                              &&  \
+        \
+        pecl install                                                    \
+            apcu imagick ssh2-1                                     &&  \
+        \
+        docker-php-ext-enable                                           \
+            apcu imagick ssh2                                       &&  \
+        \
+        sed -i -e 's/listen.*/listen = 0.0.0.0:9000/' /usr/local/etc/php-fpm.conf   &&  \
+        \
+        echo "expose_php=0" > /usr/local/etc/php/php.ini            &&  \
+        \
+        apk del .build-dependencies                                 &&  \
+        \
+        docker-php-source delete                                    &&  \
+        \
+        rm -rf /tmp/* /var/cache/apk/*
 
-EXPOSE 80
-EXPOSE 443
+
+# set recommended PHP.ini settings
+# https://secure.php.net/manual/en/opcache.installation.php
+# https://secure.php.net/manual/en/apcu.configuration.php
+# also, enable ioncube
+# COPY    conf.d/* /usr/local/etc/php/conf.d/
+
+CMD     ["php-fpm"]
+
+WORKDIR /var/www/html

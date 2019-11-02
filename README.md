@@ -103,17 +103,35 @@ $ ./up.sh
 $ ./down.sh`  
 ```
 
+## Docker
+
+```
+$ docker exec -it 7a173442cbc1 /bin/sh
+
+$ docker exec 7a173442cbc1 tail -f /var/log/nginx/error.log
+
+$ docker logs 7a173442cbc1
+
+$ docker restart 7a173442cbc1
+```
+
 
 ## Server Test
-[f3cms.lo:8080](http://f3cms.lo:8080/)
+[f3cms.lo:4433](https://f3cms.lo:4433/)
 
 
 ## DB Init
-open [f3cms.lo:8080/pma/index.php](http://f3cms.lo:8080/pma/index.php)  
+open [f3cms.lo:4433/pma/index.php](https://f3cms.lo:4433/pma/index.php)  
 and import conf/mysql/init.sql  
 Or
 ```
 $ mysql -uroot -p --port=3366 -h f3cms.lo target_db < ./conf/mysql/init.sql
+```
+
+## Loc SSL
+
+```
+$ mkcert f3cms.lo
 ```
 
 ## Submodule
