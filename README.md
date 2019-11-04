@@ -4,13 +4,13 @@
 ## 版本資訊
 
 ### LAMP 
-+ php 5.6
 + apache 2.4
-+ mysql 5.6
++ php 7.2
++ maria 10
 
 ### LNMP
-+ php 7.2
 + nginx alpine
++ php 7.2
 + maria 10
 
 

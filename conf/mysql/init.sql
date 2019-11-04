@@ -1032,3 +1032,5 @@ ALTER TABLE `tbl_tag`
 ALTER TABLE `tbl_tag_lang`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
+
+ALTER TABLE `tbl_menu` ADD `blank` ENUM('No', 'Yes') NOT NULL DEFAULT 'No' AFTER `status`;
