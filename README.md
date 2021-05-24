@@ -106,13 +106,16 @@ $ ./down.sh`
 ## Docker
 
 ```
-$ docker exec -it 7a173442cbc1 /bin/sh
+$ docker exec -it nginx_fc /bin/sh
 
-$ docker exec 7a173442cbc1 tail -f /var/log/nginx/error.log
+$ docker exec nginx_fc tail -f /var/log/nginx/error.log
 
-$ docker logs 7a173442cbc1
+$ docker logs nginx_fc
 
-$ docker restart 7a173442cbc1
+$ docker restart nginx_fc
+
+
+$ docker exec -it php-fpm_fc /bin/sh
 ```
 
 
