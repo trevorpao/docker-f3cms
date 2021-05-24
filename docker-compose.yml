@@ -2,7 +2,7 @@ version: '3.3'
 services:
     web-server:
         image: nginx:alpine
-        restart: always
+        restart: unless-stopped
         container_name: nginx_fc
         depends_on:
             - mariadb
@@ -26,7 +26,7 @@ services:
     php-fpm:
         build: .
         image: php_fc:191028
-        restart: always
+        restart: unless-stopped
         container_name: php-fpm_fc
         depends_on:
             - mariadb
@@ -37,7 +37,7 @@ services:
             - ${APACHE_PMA_PATH}:/var/www/html/pma
             - ${MYSQL_DATA_PATH}:/var/lib/mysql
             - ${APACHE_WWW_PATH}/vendor/:/var/www/html/vendor/
-            - ./conf/php/php-ini-overrides.ini:/etc/php/7.2/fpm/conf.d/php-ini-overrides.ini
+            - ./conf/php/php-ini-overrides.ini:/usr/local/etc/php/conf.d/php-ini-overrides.ini
             - ./conf/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
         working_dir: /var/www/html
 
@@ -55,9 +55,9 @@ services:
     #         - ${PHP_CONF_PATH}:/usr/local/etc/php/conf.d
 
     mariadb:
-        image: mariadb:10
+        image: mariadb:10.4.6
         container_name: mariadb_fc
-        restart: always
+        restart: unless-stopped
         ports:
             - "${MYSQL_PORT}:3306"
         # networks:

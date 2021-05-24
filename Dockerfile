@@ -101,6 +101,9 @@ RUN     apk update                       && \
         \
         rm -rf /tmp/* /var/cache/apk/*
 
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
 
 # set recommended PHP.ini settings
 # https://secure.php.net/manual/en/opcache.installation.php
