@@ -83,12 +83,15 @@ MYSQL_DATA_PATH=./database              // mysql data path
 
 
 ## Install Phpmyadmin
-```
-$ cd www/pma
-$ wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.zip
-$ unzip phpMyAdmin-latest-all-languages.zip -d ..
-$ cd -
-```
+> 
+> cd www/pma
+> wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.zip
+> unzip phpMyAdmin-latest-all-languages.zip -d ../
+> mv ../phpMyAdmin-*/* ./
+> rm -rf ../phpMyAdmin-*
+> rm -rf ./phpMyAdmin-latest-all-languages.zip
+> cd -
+> 
 
 
 ## Start the Container
