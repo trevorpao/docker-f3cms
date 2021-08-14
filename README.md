@@ -1,21 +1,11 @@
 # docker-simple-lamp  
 
-
 ## 版本資訊
-
-### LAMP 
-+ apache 2.4
-+ php 7.2
-+ maria 10
-
-### LNMP
 + nginx alpine
 + php 7.2
 + maria 10
 
-
 ## 資料夾結構
-
 ```
 conf           設定檔  
    apache      apache 設定檔  
@@ -40,19 +30,16 @@ gene-panel     backend submodule
 operonjs       frontend submodule
 ```
 
-
 ## Preparation
-
-```
-# host f3cms.lo
-$ "0.0.0.0  f3cms.lo" >> /etc/hosts
-# first build
-$ docker-compose build
-```
-
+> 
+> # host loc.f3cms.com
+> "0.0.0.0  loc.f3cms.com" >> /etc/hosts
+> 
+> # first build
+> docker-compose build
+> 
 
 ## Set .env (local folder)
-
 ```
 ### apache ######
 
@@ -81,7 +68,6 @@ MYSQL_CONF_PATH=./conf/mysql/my.cnf     // mysql config path
 MYSQL_DATA_PATH=./database              // mysql data path
 ```
 
-
 ## Install Phpmyadmin
 > 
 > cd www/pma
@@ -93,55 +79,49 @@ MYSQL_DATA_PATH=./database              // mysql data path
 > cd -
 > 
 
-
 ## Start the Container
-
-```
-$ ./up.sh
-```
+> 
+> ./up.sh
+> 
 
 ## Close the Container
-
-```
-$ ./down.sh`  
-```
+> 
+> ./down.sh
+> 
 
 ## Docker
-
-```
-$ docker exec -it nginx_fc /bin/sh
-
-$ docker exec nginx_fc tail -f /var/log/nginx/error.log
-
-$ docker logs nginx_fc
-
-$ docker restart nginx_fc
-
-
-$ docker exec -it php-fpm_fc /bin/sh
-```
-
+> 
+> docker exec -it nginx_fc /bin/sh
+> 
+> docker exec nginx_fc tail -f /var/log/nginx/error.log
+> 
+> docker logs nginx_fc
+> 
+> docker restart nginx_fc
+> 
+> docker exec -it php-fpm_fc bash
+> 
 
 ## Server Test
-[f3cms.lo:4433](https://f3cms.lo:4433/)
-
+[loc.f3cms.com:4433](https://loc.f3cms.com:4433/)
 
 ## DB Init
-open [f3cms.lo:4433/pma/index.php](https://f3cms.lo:4433/pma/index.php)  
+open [loc.f3cms.com:4433/pma/index.php](https://loc.f3cms.com:4433/pma/index.php)  
 and import conf/mysql/init.sql  
 Or
-```
-$ mysql -uroot -p --port=3366 -h f3cms.lo target_db < ./conf/mysql/init.sql
-```
+> 
+> mysql -uroot -p --port=3366 -h loc.f3cms.com target_db < ./conf/mysql/init.sql
+> 
 
 ## Loc SSL
-
-```
-$ mkcert f3cms.lo
-```
+> 
+> mkcert loc.f3cms.com
+> 
 
 ## Submodule
-```
-$ git submodule init
-```
+> 
+> git submodule init
+> 
+
 & follow submodule's RESDME.md
+

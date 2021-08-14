@@ -8,9 +8,7 @@ services:
             - mariadb
             - php-fpm
         volumes:
-            - ${APACHE_WWW_PATH}:/var/www/html
-            - ${APACHE_PMA_PATH}:/var/www/html/pma
-            - ${APACHE_WWW_PATH}/vendor/:/var/www/html/vendor/
+            - ${APACHE_WWW_PATH}:/var/www
             - ./conf/nginx/nginx.conf:/etc/nginx/nginx.conf
             - ./conf/nginx/letsencrypt:/etc/nginx/letsencrypt
             - ./log/nginx/:/var/log/nginx/
@@ -19,9 +17,7 @@ services:
         ports:
             - "${APACHE_HOST_HTTP_PORT}:80"
             - "${APACHE_HOST_HTTPS_PORT}:443"
-        # networks:
-        #     - elk_net
-        #     - default
+        working_dir: /var/www
 
     php-fpm:
         build: .
@@ -33,26 +29,11 @@ services:
         links:
             - mariadb
         volumes:
-            - ${APACHE_WWW_PATH}:/var/www/html
-            - ${APACHE_PMA_PATH}:/var/www/html/pma
+            - ${APACHE_WWW_PATH}:/var/www
             - ${MYSQL_DATA_PATH}:/var/lib/mysql
-            - ${APACHE_WWW_PATH}/vendor/:/var/www/html/vendor/
             - ./conf/php/php-ini-overrides.ini:/usr/local/etc/php/conf.d/php-ini-overrides.ini
             - ./conf/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
-        working_dir: /var/www/html
-
-    # apache:
-    #     build: .
-    #     ports:
-    #         - "${APACHE_HOST_HTTP_PORT}:80"
-    #         - "${APACHE_HOST_HTTPS_PORT}:443"
-    #     depends_on:
-    #         - mysql
-    #     volumes:
-    #         - ${APACHE_WWW_PATH}:/var/www/html
-    #         - ${APACHE_HOST_LOG_PATH}:/var/log/apache2
-    #         - ${APACHE_CONF_PATH}:/etc/apache2/custom-conf
-    #         - ${PHP_CONF_PATH}:/usr/local/etc/php/conf.d
+        working_dir: /var/www
 
     mariadb:
         image: mariadb:10.4.6
@@ -75,15 +56,20 @@ services:
             - MYSQL_USER=${MYSQL_USER}
             - MYSQL_PASSWORD=${MYSQL_PASSWORD}
             - TZ=Asia/Taipei
+
     redis:
         image: redis:latest
         container_name: redis_fc
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+        volumes:
+            - ./../redis/redis.conf:/usr/local/etc/redis.conf
+            - ./../../redis/data:/usr/local/redis/data
+            - ./../../redis/redis.log:/usr/local/redis/redis.log
 volumes:
     run_vol:
         driver_opts:
             type: tmpfs
             device: tmpfs
-# networks:
-#     elk_net:
-#         external:
-#             name: elk
+
