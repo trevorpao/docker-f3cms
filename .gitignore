@@ -8,6 +8,7 @@ log/php/*
 log/nginx/*
 
 # www
+www/backend/*
 www/pma/*
 !www/pma/config.inc.php
 www/vendor/*
@@ -23,3 +24,7 @@ database/**/*.frm
 database/**/*.ibd
 database/mysql/*
 database/performance_schema/*
+
+conf/nginx/letsencrypt/*f3cms*.pem
+
+gene-panel-v2
