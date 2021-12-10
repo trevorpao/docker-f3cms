@@ -1,4 +1,4 @@
-# docker-simple-lamp  
+# docker-simple-lamp
 
 ## 版本資訊
 + nginx alpine
@@ -115,7 +115,7 @@ Or
 
 ## Loc SSL
 > 
-> mkcert loc.f3cms.com
+> mkcert loc.f3cms.com my.f3cms.lo
 > 
 
 ## Submodule
