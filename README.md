@@ -2,11 +2,11 @@
 
 ## 版本資訊
 + nginx alpine
-+ php 7.2
++ php 7.3
 + maria 10
 
 ## 資料夾結構
-```
+```ini
 conf           設定檔  
    apache      apache 設定檔  
    mysql       mysql 設定檔  
@@ -31,16 +31,27 @@ operonjs       frontend submodule
 ```
 
 ## Preparation
-> 
-> # host loc.f3cms.com
-> "0.0.0.0  loc.f3cms.com" >> /etc/hosts
-> 
-> # first build
-> docker-compose build
-> 
 
-## Set .env (local folder)
+### host loc.f3cms.com
+```sh
+sudo vim  /etc/hosts
 ```
+
+Add the following  
+```ini
+0.0.0.0  loc.f3cms.com
+``` 
+
+### Loc SSL
+```sh
+mkcert loc.f3cms.com
+```
+
+### Set .env (local folder)
+```ini
+COMPOSE_PROJECT_NAME=artshow
+APP_NAME=artshow
+
 ### apache ######
 
 APACHE_HOST_HTTP_PORT=8080              // http port  
@@ -48,6 +59,7 @@ APACHE_HOST_HTTPS_PORT=4433             // http port
 APACHE_HOST_LOG_PATH=./log/apache       // apache log path  
 APACHE_CONF_PATH=./conf/apache          // apache config path
 APACHE_WWW_PATH=./www                   // website path
+VND_PATH=/var/www/vendor                // vendor path
 
 
 ### php ######
@@ -68,39 +80,46 @@ MYSQL_CONF_PATH=./conf/mysql/my.cnf     // mysql config path
 MYSQL_DATA_PATH=./database              // mysql data path
 ```
 
-## Install Phpmyadmin
-> 
-> cd www/pma
-> wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.zip
-> unzip phpMyAdmin-latest-all-languages.zip -d ../
-> mv ../phpMyAdmin-*/* ./
-> rm -rf ../phpMyAdmin-*
-> rm -rf ./phpMyAdmin-latest-all-languages.zip
-> cd -
-> 
+### Install Phpmyadmin
+```sh
+wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.zip
+unzip phpMyAdmin-latest-all-languages.zip
+mv phpMyAdmin-*/* ./www/pma
+rm -rf phpMyAdmin-*
+```
 
-## Start the Container
-> 
-> ./up.sh
-> 
+### Download browscap.ini
+```sh
+wget -O ./www/browscap.ini https://browscap.org/stream?q=PHP_BrowsCapINI
+```
 
-## Close the Container
-> 
-> ./down.sh
-> 
+### Init the Container
+```sh
+docker-compose build
+```
+
+### Start the Container
+```sh
+./up.sh
+```
+
+### Close the Container
+```sh
+./down.sh
+```
 
 ## Docker
-> 
-> docker exec -it nginx_fc /bin/sh
-> 
-> docker exec nginx_fc tail -f /var/log/nginx/error.log
-> 
-> docker logs nginx_fc
-> 
-> docker restart nginx_fc
-> 
-> docker exec -it php-fpm_fc bash
-> 
+```sh
+docker exec -it nginx_ats /bin/sh
+
+docker exec nginx_ats tail -f /var/log/nginx/error.log
+
+docker logs nginx_ats
+
+docker restart nginx_ats
+
+docker exec -it php-fpm_ats bash
+```
 
 ## Server Test
 [loc.f3cms.com:4433](https://loc.f3cms.com:4433/)
@@ -109,14 +128,9 @@ MYSQL_DATA_PATH=./database              // mysql data path
 open [loc.f3cms.com:4433/pma/index.php](https://loc.f3cms.com:4433/pma/index.php)  
 and import conf/mysql/init.sql  
 Or
-> 
-> mysql -uroot -p --port=3366 -h loc.f3cms.com target_db < ./conf/mysql/init.sql
-> 
-
-## Loc SSL
-> 
-> mkcert loc.f3cms.com my.f3cms.lo
-> 
+```sh
+mysql -uroot -p --port=3366 -h loc.f3cms.com target_db < ./conf/mysql/init.sql
+```
 
 ## Submodule
 > 
