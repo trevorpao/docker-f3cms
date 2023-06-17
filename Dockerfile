@@ -1,8 +1,8 @@
-ARG     PHP_VERSION=7.3
+ARG     PHP_VERSION=8.1
 
 FROM    php:${PHP_VERSION}-fpm
 
-ENV     PHPREDIS_VERSION="4.1.1"
+ENV     PHPREDIS_VERSION="5.3.7"
 
 ADD     http://downloads3.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz /tmp/
 ADD     https://github.com/phpredis/phpredis/archive/${PHPREDIS_VERSION}.tar.gz /tmp/
@@ -44,7 +44,6 @@ RUN apt-get install -y \
     libxml2-dev \
     libxslt-dev \
     && docker-php-ext-install -j$(nproc) \
-        xmlrpc \
         xsl
 
 # images
@@ -54,7 +53,12 @@ RUN apt-get install -y \
     libpng-dev \
     libgd-dev \
     libmagickwand-dev --no-install-recommends \
-    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+    && docker-php-ext-configure gd \
+            --prefix=/usr \
+            --with-jpeg \
+            --with-webp \
+            --with-xpm \
+            --with-freetype \
     && pecl install imagick \
     && docker-php-ext-enable imagick \
     && docker-php-ext-install -j$(nproc) \
@@ -81,7 +85,6 @@ RUN apt-get install -y libgmp-dev \
 RUN apt-get install -y \
         libzip-dev \
         zip \
-  && docker-php-ext-configure zip --with-libzip \
   && docker-php-ext-install zip
 
 # compression
@@ -109,17 +112,17 @@ RUN docker-php-ext-install -j$(nproc) \
 RUN apt-get install -y \
     libssh2-1-dev
 
-RUN cd /tmp && git clone https://git.php.net/repository/pecl/networking/ssh2.git && cd /tmp/ssh2 \
+RUN cd /tmp && git clone https://github.com/php/pecl-networking-ssh2.git && cd /tmp/pecl-networking-ssh2 \
 && phpize && ./configure && make && make install \
 && echo "extension=ssh2.so" > /usr/local/etc/php/conf.d/ext-ssh2.ini \
 && rm -rf /tmp/ssh2
 
 # PECL
 RUN pecl install \
-    redis-4.2.0 \
-    apcu-5.1.16 \
-    xdebug-2.7.0beta1 \
-    memcached-3.1.3
+    redis-5.3.7 \
+    apcu-5.1.22 \
+    xdebug-3.2.1 \
+    memcached-3.2.0
 
 
 RUN apt-get clean

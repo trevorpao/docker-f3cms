@@ -5,7 +5,3 @@
 	path = operonjs
 	url = https://github.com/trevorpao/operon.git
 	branch = f3cms
-[submodule "gene-panel"]
-	path = gene-panel
-	url = https://github.com/trevorpao/gene-panel.git
-	branch = f3cms

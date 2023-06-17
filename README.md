@@ -2,7 +2,7 @@
 
 ## 版本資訊
 + nginx alpine
-+ php 7.3
++ php 8.1
 + maria 10
 
 ## 資料夾結構

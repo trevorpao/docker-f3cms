@@ -21,7 +21,7 @@ services:
 
     php-fpm:
         build: .
-        image: php_fc:191028
+        image: php_fc:230616
         restart: unless-stopped
         container_name: php-fpm_fc
         depends_on:
