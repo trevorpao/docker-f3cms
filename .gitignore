@@ -13,6 +13,7 @@ www/pma/*
 !www/pma/config.inc.php
 www/vendor/*
 !www/vendor/.gitkeep
+www/browscap.ini
 
 # database
 ib*

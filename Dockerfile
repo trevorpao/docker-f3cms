@@ -1,8 +1,8 @@
-ARG     PHP_VERSION=8.1
+ARG     PHP_VERSION=8.3
 
 FROM    php:${PHP_VERSION}-fpm
 
-ENV     PHPREDIS_VERSION="5.3.7"
+ENV     PHPREDIS_VERSION="6.2.0"
 
 ADD     http://downloads3.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz /tmp/
 ADD     https://github.com/phpredis/phpredis/archive/${PHPREDIS_VERSION}.tar.gz /tmp/
@@ -119,9 +119,8 @@ RUN cd /tmp && git clone https://github.com/php/pecl-networking-ssh2.git && cd /
 
 # PECL
 RUN pecl install \
-    redis-5.3.7 \
-    apcu-5.1.22 \
-    xdebug-3.2.1 \
+    redis-7.4.3 \
+    xdebug-3.4.0 \
     memcached-3.2.0
 
 

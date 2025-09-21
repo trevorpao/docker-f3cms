@@ -2,7 +2,7 @@
 
 ## 版本資訊
 + nginx alpine
-+ php 8.1
++ php 8.3
 + maria 10
 
 ## 資料夾結構
@@ -110,15 +110,15 @@ docker-compose build
 
 ## Docker
 ```sh
-docker exec -it nginx_ats /bin/sh
+docker exec -it nginx_fc /bin/sh
 
-docker exec nginx_ats tail -f /var/log/nginx/error.log
+docker exec nginx_fc tail -f /var/log/nginx/error.log
 
-docker logs nginx_ats
+docker logs nginx_fc
 
-docker restart nginx_ats
+docker restart nginx_fc
 
-docker exec -it php-fpm_ats bash
+docker exec -it php-fpm_fc bash
 ```
 
 ## Server Test
