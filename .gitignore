@@ -11,9 +11,13 @@ log/nginx/*
 www/backend/*
 www/pma/*
 !www/pma/config.inc.php
+www/tmpls/*
+!www/tmpls/.gitkeep
 www/vendor/*
 !www/vendor/.gitkeep
 www/browscap.ini
+www/googelAuth.json
+www/themeSetting.json
 
 # database
 ib*

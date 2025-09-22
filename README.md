@@ -88,6 +88,10 @@ mv phpMyAdmin-*/* ./www/pma
 rm -rf phpMyAdmin-*
 ```
 
+### Add
+
+move themeSetting.json into www folder
+
 ### Download browscap.ini
 ```sh
 wget -O ./www/browscap.ini https://browscap.org/stream?q=PHP_BrowsCapINI
