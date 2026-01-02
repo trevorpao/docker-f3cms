@@ -2,12 +2,13 @@ services:
     web-server:
         image: nginx:alpine
         restart: unless-stopped
-        container_name: nginx_fc
+        container_name: nginx_f3cms
         depends_on:
             - mariadb
             - php-fpm
         volumes:
             - ${APACHE_WWW_PATH}:/var/www
+            - ${DOCU_PATH}:/var/www/document
             - ./conf/nginx/nginx.conf:/etc/nginx/nginx.conf
             - ./conf/nginx/letsencrypt:/etc/nginx/letsencrypt
             - ./log/nginx/:/var/log/nginx/
@@ -20,9 +21,9 @@ services:
 
     php-fpm:
         build: .
-        image: php_fc:230616
+        image: php_f3cms:251231
         restart: unless-stopped
-        container_name: php-fpm_fc
+        container_name: php-fpm_f3cms
         depends_on:
             - mariadb
         links:
@@ -36,7 +37,7 @@ services:
 
     mariadb:
         image: mariadb:10.4.6
-        container_name: mariadb_fc
+        container_name: mariadb_f3cms
         restart: unless-stopped
         ports:
             - "${MYSQL_PORT}:3306"
@@ -58,7 +59,7 @@ services:
 
     redis:
         image: redis:latest
-        container_name: redis_fc
+        container_name: redis_f3cms
         restart: unless-stopped
         ports:
             - "6379:6379"

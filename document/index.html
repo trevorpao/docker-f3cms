@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>F3CMS Docs</title>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/themes/vue.css" />
+    <style>
+      :root {
+        --sidebar-width: 280px;
+      }
+
+      .sidebar {
+        border-right: 1px solid rgba(0, 0, 0, 0.06);
+      }
+
+      .markdown-section pre code.language-mermaid {
+        background: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">載入文件中...</div>
+    <script>
+      window.$docsify = {
+        name: 'F3CMS Docs',
+        repo: '',
+        loadSidebar: true,
+        subMaxLevel: 2,
+        sidebarDisplayLevel: 1,
+        executeScript: true,
+        alias: {
+          '/.*/_sidebar.md': '/_sidebar.md',
+        },
+        mermaidConfig: {
+          theme: 'default',
+          startOnLoad: true,
+        },
+      };
+    </script>
+    <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-php.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-sql.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify-mermaid@2/dist/docsify-mermaid.min.js"></script>
+  </body>
+</html>
