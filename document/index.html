@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>F3CMS Docs</title>
     <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/themes/vue.css" />
+    <link
+        rel="stylesheet"
+        href="//cdn.jsdelivr.net/npm/docsify-darklight-theme@latest/dist/style.min.css"
+        title="docsify-darklight-theme"
+        type="text/css"
+    />
     <style>
       :root {
         --sidebar-width: 280px;
@@ -37,12 +43,31 @@
           theme: 'default',
           startOnLoad: true,
         },
+        darklightTheme: {
+          defaultTheme: 'light',
+          dark: { highlightColor: '#e5e5e5' },
+          light: { highlightColor: '#2f495e' },
+        },
+        copyCode: {
+          buttonText: 'Copy',
+          errorText: 'Error',
+          successText: 'Copied!',
+        },
+        flexibleAlerts: {
+          style: 'callout',
+        },
       };
     </script>
     <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify-darklight-theme@latest/dist/index.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify-copy-code/dist/docsify-copy-code.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify-plugin-flexible-alerts"></script>
+    <script src="//cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-php.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-sql.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/docsify-mermaid@2/dist/docsify-mermaid.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/@mbertogliati/docsify-mermaid-zoom@3.1.0/dist/docsify-mermaid-zoom.js"></script>
   </body>
 </html>

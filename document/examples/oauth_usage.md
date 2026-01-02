@@ -58,6 +58,51 @@ Oauth::setInstance($oauth); // 讓既有的 Oauth::byToken() 可使用 DI 版本
 ```
 > 你也可以傳入自訂的 `$opauthFactory`（第二個參數），例如注入 Service Container 內建的 Router，而不用直接呼叫 `OpauthBridge::instance()`。
 
+## Oauth API 呼叫序列 (Mermaid)
+
+### 1. Authorization Flow（導回登入頁）
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as Client (Browser/App)
+  participant C as Controller / Route
+  participant O as Oauth
+  participant F as Opauth Bridge
+  participant H as OauthHandler
+  participant P as Provider Auth Server
+
+  U->>C: 1. GET /auth/{provider}
+  C->>O: 2. $oauth->configureRoute()/getURL('auth')
+  O->>H: 3. build authorize URL (state/nonce)
+  H-->>O: 4. return auth URL + query
+  O-->>C: 5. redirect info
+  C-->>U: 6. 302 Redirect to Provider
+  U->>P: 7. User login & consent
+  P-->>F: 8. Callback to /opauth (with code/token)
+  F-->>O: 9. onSuccess payload
+  O-->>C: 10. \\F3CMS\\oMember::_oauth 或自訂 handler
+```
+
+### 2. Token Validation / byToken Flow
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as Client (Browser/App)
+  participant C as Controller (API)
+  participant O as Oauth
+  participant H as OauthHandler
+  participant P as Provider Token/Userinfo API
+
+  U->>C: 1. POST /oauth/callback (credential/access_token)
+  C->>O: 2. $oauth->validateToken(provider, token)
+  O->>H: 3. resolve handler & prepare request
+  H->>P: 4. tokeninfo/userinfo API
+  P-->>H: 5. JSON profile or error
+  H-->>O: 6. normalized data
+  O-->>C: 7. formatted profile (provider/uid/info)
+  C-->>U: 8. session/token response
+```
+
 ## 設定 Opauth Route
 ```php
 $oauth->configureRoute(__DIR__ . '/../conf/opauth/google.conf.php');

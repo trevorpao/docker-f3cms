@@ -1,4 +1,14 @@
 - [Home](README.md)
+- Guides
+  - [Setup Guide](guides/setup.md)
+  - [Create Module Guide](guides/create_new_module.md)
+  - [Coding Style](guides/coding_style.md)
+  - [Markdown Guide](guides/markdown_guide.md)
+- Reference
+  - [F3CMS Intro](reference/intro.md)
+  - [Feed Reference](reference/feed_reference.md)
+  - [Reaction Reference](reference/reaction_reference.md)
+  - [Outfit Reference](reference/outfit_reference.md)
 - Examples
   - [Cashier Usage](examples/cashier_usage.md)
   - [Sender Usage](examples/sender_usage.md)

@@ -53,6 +53,49 @@ $cashier = new Cashier([
 ```
 > 控制器只需記得 provider alias 與場景（`Cashier::SCENARIO_*`）。以下分別介紹常用場景。
 
+## Cashier API 呼叫序列 (Mermaid)
+
+### 1. Init Flow（建立付款）
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as Client (Browser/App)
+  participant C as Controller
+  participant CS as Cashier
+  participant H as PaymentHandler
+  participant G as Provider Gateway
+
+  U->>C: 1. POST /checkout (order payload)
+  C->>CS: 2. initPayment(provider, order)
+  CS->>H: 3. resolve handler & build payload
+  H->>G: 4. provider API (TRS0004 / checkout / PaymentIntent)
+  G-->>H: 5. redirect URL / token / intent
+  H-->>CS: 6. normalized result
+  CS-->>C: 7. Cashier response
+  C-->>U: 8. render form or redirect
+```
+
+### 2. Confirm / Refund / ACK Flow
+```mermaid
+sequenceDiagram
+  autonumber
+  participant G as Provider Gateway
+  participant C as Controller
+  participant CS as Cashier
+  participant H as PaymentHandler
+  participant DB as Order System
+
+  G->>C: 1. webhook / callback (confirm/refund/notify)
+  C->>CS: 2. confirmPayment|refund|acknowledge(provider, payload)
+  CS->>H: 3. normalize payload & sign check
+  H->>G: 4. provider API (confirm / refund / query)
+  G-->>H: 5. status response
+  H-->>CS: 6. unified result
+  CS-->>C: 7. success/fail info
+  C->>DB: 8. update order, log history
+  C-->>G: 9. ACK response (例如 RETURL / {"status":0})
+```
+
 ## CUBE (EPOS)
 - **Scenario 對應：** init → TRS0004、query → ORD0001、ack → ACK XML、verify → 背景通知。
 - **初始化付款頁**
