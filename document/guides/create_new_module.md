@@ -1,155 +1,358 @@
-# 建立新模組流程
+# F3CMS Create New Module Guide
 
-以下流程示範如何依統一命名規範建立 `Draft` 模組。範例需求：建立一張 `draft` 資料表以管理每次透過 LLM 生成草稿的狀態與內容。
+## Purpose
+- Provide the practical execution path for creating a new module after the design has already been validated.
+- Translate entity, schema, and layer decisions into concrete files and SQL.
+- Keep new module implementation consistent with the newer guide system.
 
-## Step1 分析需求
+## Primary Readers
+- SD
+- Backend programmers
+- LLMs generating module scaffolds after design is confirmed
 
-根據需求萃取資料欄位，先以 JSON 方式描述資料結構，確認欄位語意與命名。
+## Scope
+- preconditions before module creation
+- new module decision sequence
+- schema scaffolding
+- Feed, Reaction, Outfit, and Kit scaffolding
+- implementation handoff from design to code
 
-### JSON 範例
+## LLM Reading Contract
+- Do not use this file as the first source for deciding whether a new module should exist.
+- Use this guide only after entity boundary, schema shape, and naming direction are already clear.
+- When this file overlaps with design rules, prefer data_modeling.md, module_design.md, and sd_conventions.md.
+
+## Inputs
+- [index.md](index.md)
+- [data_modeling.md](data_modeling.md)
+- [module_design.md](module_design.md)
+- [feed_guide.md](feed_guide.md)
+- [sd_conventions.md](sd_conventions.md)
+- [data_architecture_checklist.md](data_architecture_checklist.md)
+
+## Core Thesis
+- A new module should be created only after the entity is clear.
+- This guide is an execution guide, not an architecture arbitration guide.
+- The correct order is: identify entity, confirm module boundary, shape schema, then generate module files.
+
+## When to Use This Guide
+- the business object has been identified as a stable entity
+- the decision to create a new module has already been justified
+- the main table and supporting tables are conceptually clear
+- naming is expected to follow normal F3CMS conventions
+
+Do not use this guide when the real question is still one of the following:
+- is this actually a new entity
+- should this extend an existing module instead
+- should this field live in main, `_lang`, `_meta`, or a relation table
+
+For those earlier decisions, read:
+- [module_design.md](module_design.md)
+- [data_modeling.md](data_modeling.md)
+- [sd_conventions.md](sd_conventions.md)
+
+## Recommended Decision Order Before Writing Code
+Follow this order before creating files.
+
+### Step 0: Confirm That a New Module Is Justified
+Ask:
+- can the business object be named independently
+- does it have its own lifecycle or status
+- does it need its own main table
+- does it need separate backend actions or list behavior
+
+If the answers are weak or mixed, stop here and return to [module_design.md](module_design.md).
+
+### Step 1: Identify the Entity Contract
+
+Write down the minimum stable definition of the entity:
+- entity name
+- purpose
+- ownership
+- status model
+- key relations
+- whether it is multilingual
+- whether it has optional metadata
+
+This step prevents the common mistake of generating files before the entity model is stable.
+
+### Step 2: Shape the Schema
+
+Decide:
+- main table fields
+- `_lang` table fields if multilingual
+- `_meta` usage if optional extension attributes exist
+- relation tables if the entity links to other entities
+
+Use [data_architecture_checklist.md](data_architecture_checklist.md) before moving on.
+
+### Step 3: Define Layer Responsibilities
+
+Decide what the module actually needs:
+- Feed is required for entity data lifecycle
+- Reaction is required when backend interaction or JSON actions exist
+- Outfit is required when page rendering or frontend routing behavior exists
+- Kit is required when module-local validation or reusable helper rules exist
+
+Not every module needs all four files immediately, but the naming model remains the same.
+
+### Step 4: Only Then Generate the Module Skeleton
+
+At this point the practical implementation work begins.
+
+## Running Example
+This guide uses `Draft` as an example module.
+
+Example requirement:
+- create a `Draft` entity to store LLM-generated working drafts
+- track ownership, status, language, method, input intent, guideline, and generated content
+- support later retrieval and management as an independent business object
+
+This is a reasonable module example because `Draft` is not just one page field bundle. It has its own identity, lifecycle, and persistence boundary.
+
+## Step 1: Describe the Entity Before SQL
+
+Before writing SQL, describe the intended entity shape in a compact structured form.
+
+This can be JSON, YAML, or a short table. The important part is not the format. The important part is that field meaning is discussed before schema is frozen.
+
+### Example JSON
 ```json
 {
    "press_id": 0,
    "owner_id": 3,
-   "status": "New", // ['New', 'Waiting', 'Done', 'Invaild']
-   "lang": "tw", // ['tw', 'en', 'jp']
-   "method": "gen_guideline", // 要接手的 LLM 函式，例如 gen_guideline, translate
-   "intent": "常聽到人說\"祝您如願以償\"，但有趣的是如果想達到這個願望，那往往不是因為我們拿到了最好的結果，而是因為我們懂得限縮自身的慾望。也就是\"知足感恩\"才是幸福感的來由。但就像尼泊爾的幸福指數一樣，也許這也是自我說服的假象。重點應該在於找到尺度，我的尺度在於汗水的份量是否足夠。但不是把汗水跟收獲放在天平的兩端比較，而是單純考量我是否把握每一次可以努力的機會。", 
+   "status": "New",
+   "lang": "tw",
+   "method": "gen_guideline",
+   "intent": "...",
    "guideline": "",
    "content": ""
 }
 ```
 
-## Step2 產生 module SQL schema
+### What to Validate Before Moving On
+- `press_id` is a real relation to another entity
+- `owner_id` is ownership, not display-only metadata
+- `status` is part of the entity lifecycle
+- `lang` belongs in the main table only if language is an operational attribute of the row rather than localized content storage
+- `guideline` and `content` are part of the core entity payload rather than optional `_meta` extensions
 
-取得確認後，依資料庫命名規則生成 SQL，確保命名一致、欄位語意清楚。
+If any field placement is unclear at this stage, stop and re-check [data_modeling.md](data_modeling.md).
 
-### 資料庫命名規則（統一版）
+## Step 2: Generate the SQL Schema
 
-1. **資料表命名**
-   - 一律使用 `tbl_` 前綴，名稱採單數＋小寫＋底線（`tbl_draft`, `tbl_press_lang`）。
-   - 延伸表以 `${base}_XXXX` 命名 (如 `tbl_press_lang`, `tbl_press_meta`)。
-   - 語系延伸表以 `${base}_lang` 命名，避免使用其他後綴。
-   - 後設資料延伸表以 `${base}_meta` 命名，避免使用其他後綴。
-   - LOG 資料延伸表以 `${base}_log` 命名，避免使用其他後綴。
-   - 多對多資料延伸表以 `${module1}_$(module2)` 命名，避免使用其他後綴，主鍵為 `${module1}_id`,  `${module2}_id`（如 `press_id`, `tag_id`）。
+After the entity structure is clear, generate SQL that matches F3CMS naming and table decomposition rules.
 
-2. **欄位命名**
-   - 全小寫＋底線：`owner_id`, `order_no`, `insert_user`。
-   - 主鍵固定為 `id`；外鍵使用 `${target}_id`（如 `press_id`, `member_id`）。
-   - 延伸表主鍵固定為 `id`；主表外鍵使用 `parent_id`。
-   - 布林/狀態欄位使用語意清楚的字：`status`, `is_active`, `is_default`。
-   - 枚舉欄位使用 `ENUM` 並將預設值寫在第一個選項。
-   - 排序欄位統一為 `sorter INT DEFAULT 99`。
+### Naming Rules to Preserve
 
-3. **時間戳記欄位**
-   - `insert_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP`。
-   - `last_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`。
+#### Table Naming
+- always use the `tbl_` prefix
+- use lowercase with underscores
+- the main table base should align with the module Feed `MTB`
+- language tables use `${base}_lang`
+- metadata tables use `${base}_meta`
+- relation tables use `tbl_{entity_a}_{entity_b}`
 
-4. **建立/更新者欄位**
-   - `insert_user INT DEFAULT 0`（建立者 ID）。
-   - `last_user INT DEFAULT 0`（最後更新者 ID）。
+#### Field Naming
+- primary key is `id`
+- foreign keys use `${target}_id`
+- subordinate extension rows use `parent_id`
+- audit fields use `insert_ts`, `last_ts`, `insert_user`, `last_user`
+- sorter fields use `sorter`
 
-5. **多語系資料表**
-   - 表名 `tbl_xxx_lang`，並包含 `parent_id`、`lang`（例如 `ENUM('tw','en','jp')`）。
+#### Schema Consistency Rules
+- avoid inventing one-off suffixes when `_lang`, `_meta`, or relation tables already fit
+- avoid storing real relations in JSON
+- avoid storing localized content in the main table
+- avoid using `_meta` to postpone a real schema decision
 
-6. **多對多關聯表**
-   - 表名 `tbl_{entity_a}_{entity_b}`，保留兩個外鍵欄位與 `idx_{table}_{column}` 索引。
-
-7. **字符集與排序**
-   - 統一使用 `utf8mb4_unicode_ci`。
-
-8. **SQL 註解與避錯**
-   - 重要欄位加 `COMMENT`，表名與欄位使用反引號 `` ` ``。
-   - 避免 `NULL` 為預設值，INT 設為 `0`，字串設為空字串。
-
-9. **命名消歧**
-   - 相同語意的欄位維持同一名稱（如 `guideline`、`content`）。
-   - API 參數與 DB 欄位同步命名，降低轉換成本。
-
-### SQL 範例
+### Draft Main Table Example
 ```sql
 CREATE TABLE `tbl_draft` (
    `id` INT AUTO_INCREMENT PRIMARY KEY,
-   `press_id` INT NOT NULL DEFAULT 0 COMMENT '關聯的新聞稿 ID',
-   `owner_id` INT NOT NULL DEFAULT 0 COMMENT '草稿擁有者 ID',
-   `status` ENUM('New', 'Waiting', 'Done', 'Invalid') DEFAULT 'New' COMMENT '草稿狀態',
-   `lang` ENUM('tw', 'en', 'jp') DEFAULT 'tw' COMMENT '語言代碼',
-   `method` VARCHAR(50) NOT NULL DEFAULT '' COMMENT 'LLM 函式名稱 (如 gen_guideline)',
-   `intent` TEXT DEFAULT '' COMMENT '使用者意圖 (JSON/文字)',
-   `guideline` TEXT DEFAULT '' COMMENT '提示詞或操作指引',
-   `content` TEXT DEFAULT '' COMMENT '生成結果',
-   `insert_ts` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
-   `last_ts` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最後更新時間',
-   `insert_user` INT DEFAULT 0 COMMENT '建立者 ID',
-   `last_user` INT DEFAULT 0 COMMENT '最後更新者 ID'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'LLM 草稿清單';
+   `press_id` INT NOT NULL DEFAULT 0 COMMENT 'Related press entity id',
+   `owner_id` INT NOT NULL DEFAULT 0 COMMENT 'Draft owner id',
+   `status` ENUM('New', 'Waiting', 'Done', 'Invalid') DEFAULT 'New' COMMENT 'Draft lifecycle status',
+   `lang` ENUM('tw', 'en', 'jp') DEFAULT 'tw' COMMENT 'Operational language code',
+   `method` VARCHAR(50) NOT NULL DEFAULT '' COMMENT 'LLM method name',
+   `intent` TEXT NOT NULL COMMENT 'Original user intent',
+   `guideline` TEXT NOT NULL COMMENT 'Prompt guideline or operator instruction',
+   `content` LONGTEXT NOT NULL COMMENT 'Generated draft content',
+   `insert_ts` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+   `last_ts` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   `insert_user` INT NOT NULL DEFAULT 0,
+   `last_user` INT NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='LLM draft entity';
 ```
 
-> 命名重點：模組資料表 `tbl_draft` 對應模組資料夾 `www/f3cms/modules/Draft/`，類別名稱使用 PascalCase（`fDraft`, `oDraft`, `rDraft` 等）。
+### Review Before Applying SQL
+- Can the table be inferred from the entity name?
+- Does every field belong in the main table for a clear reason?
+- Would any field be better modeled as `_lang`, `_meta`, or a relation?
+- Are audit and ownership fields aligned with existing conventions?
 
-### 模組檔案命名守則
-- **資料夾**：`www/f3cms/modules/Draft`（首字大寫，與資料表去除 `tbl_` 後對應）。
-- **Feed 類別**：`f{Module}`（如 `fDraft`），常數 `MTB` = 資料表名稱去除 `tbl_` 後的字串。
-- **Reaction 類別**：`r{Module}`。
-- **Outfit 類別**：`o{Module}`。
-- **語言檔/樣板**：依 Outfit 需求存放於 `www/f3cms/themes/*`，命名需與模組代碼一致，避免重複含義。
+## Step 3: Create the Module Folder
 
-## 建立 Module
+Create the module folder under `www/f3cms/modules/` using PascalCase.
 
-建立 www/f3cms/modules/Draft
+### Example
+- folder: `www/f3cms/modules/Draft/`
+- Feed class: `fDraft`
+- Reaction class: `rDraft`
+- Outfit class: `oDraft`
+- Kit class if needed: `kDraft`
 
-### 生成 Feed
+The folder name, class names, and Feed `MTB` must point to the same entity concept.
 
-以上方 sql 範例，則會生成下方的 www/f3cms/modules/Draft/feed.php
+## Step 4: Scaffold Feed First
 
+Feed is the minimum required layer because it defines the entity data lifecycle.
+
+### Draft Feed Example
 ```php
+<?php
+
 namespace F3CMS;
 
-/**
- * data feed
- */
 class fDraft extends Feed
 {
-    public const MTB       = 'draft';
-    public const MULTILANG = 0;
+   public const MTB = 'draft';
+   public const MULTILANG = 0;
 
-    public const ST_NEW     = 'New';
-    public const ST_WAITING = 'Waiting';
-    public const ST_DONE    = 'Done';
-    public const ST_INVALID = 'Invalid';
+   public const ST_NEW = 'New';
+   public const ST_WAITING = 'Waiting';
+   public const ST_DONE = 'Done';
+   public const ST_INVALID = 'Invalid';
 
-    public const BE_COLS = 'm.id,m.press_id,m.owner_id,m.status,m.lang,m.method,m.intent,m.insert_ts,m.last_ts,m.last_user,m.insert_user';
+   public const BE_COLS = 'm.id,m.press_id,m.owner_id,m.status,m.lang,m.method,m.intent,m.insert_ts,m.last_ts,m.last_user,m.insert_user';
 }
 ```
 
-### 生成 Reaction
+### What to Check in Feed
+- `MTB` aligns with the table base name
+- `MULTILANG` reflects actual schema design
+- status constants match the lifecycle model
+- `BE_COLS` supports the expected backend read model
 
-以上方 sql 範例，則會生成下方的 www/f3cms/modules/Draft/reaction.php
+Do not turn Feed into a thin placeholder if the entity already needs explicit lifecycle handling. Add the necessary save, read, relation, or helper behavior here as the entity requires.
 
+## Step 5: Add Reaction If Backend Interaction Exists
+
+Add Reaction when the module needs backend request handling, JSON responses, permission orchestration, or management actions.
+
+### Draft Reaction Example
 ```php
+<?php
+
 namespace F3CMS;
 
 class rDraft extends Reaction
 {
-    public static function handleRow($row = [])
-    {
-        $row['press_id'] = ($row['press_id'] > 0) ? [fPress::oneOpt($row['press_id'])] : [[]];
-        $row['owner_id'] = ($row['owner_id'] > 0) ? [fStaff::oneOpt($row['owner_id'])] : [[]];
+   public static function handleRow($row = [])
+   {
+      $row['press_id'] = ($row['press_id'] > 0) ? [fPress::oneOpt($row['press_id'])] : [[]];
+      $row['owner_id'] = ($row['owner_id'] > 0) ? [fStaff::oneOpt($row['owner_id'])] : [[]];
 
-        return $row;
-    }
+      return $row;
+   }
 }
 ```
 
-### 生成 Outfit
+### Reaction Responsibility Reminder
+- Reaction handles request and response flow
+- Reaction can call Feed and option helpers
+- Reaction should not become the primary home of schema logic or persistence rules
 
-以上方 sql 範例，則會生成下方的 www/f3cms/modules/Draft/outfit.php
+If a reviewer sees complex data lifecycle logic accumulating here, move that logic back into Feed.
 
+## Step 6: Add Outfit If Frontend or Page Rendering Exists
+
+Add Outfit when the module needs page routes, frontend rendering orchestration, or view-facing data preparation.
+
+### Draft Outfit Example
 ```php
+<?php
+
 namespace F3CMS;
 
 class oDraft extends Outfit
 {
 }
 ```
+
+### Outfit Responsibility Reminder
+- Outfit coordinates rendering or page flow
+- Outfit should not become a substitute write path for entity persistence
+
+If the module is backend-only or integration-only, Outfit may remain minimal or be omitted until actually needed.
+
+## Step 7: Add Kit Only When Module-Local Rules Exist
+
+Create `kit.php` only when the module has validation rules or reusable helper logic that belongs to the module but not to Feed persistence semantics.
+
+Use Kit for:
+- validation rules
+- reusable module-local helpers
+- small utilities used by Reaction or Outfit
+
+Do not create Kit just because every layer name exists. Create it when the module actually needs it.
+
+## Step 8: Final Validation Before Calling the Module Complete
+
+Before considering the module scaffold complete, verify the following.
+
+### Entity and Boundary
+- the module still represents one entity
+- the module was not created only because one screen needed special behavior
+
+### Schema and Naming
+- table names, field names, and class names align
+- main table versus `_lang`, `_meta`, and relation placement still looks correct
+
+### Layer Integrity
+- Feed owns data lifecycle
+- Reaction owns backend interaction
+- Outfit owns rendering flow
+- Kit is used only when module-local rules justify it
+
+### Review Path
+- run [data_architecture_checklist.md](data_architecture_checklist.md)
+- run [pr_review_checklist.md](pr_review_checklist.md) before merge if the module is already being reviewed in code
+
+## Common Mistakes When Creating a New Module
+
+### Mistake 1: Starting with Files Instead of Entity
+This usually produces a folder quickly but a poor boundary.
+
+Correct approach:
+- confirm the entity first
+- then confirm whether a new module is really needed
+
+### Mistake 2: Putting Too Much in Reaction
+New modules often accumulate logic in Reaction because it is easy to start from request handlers.
+
+Correct approach:
+- keep persistence and entity lifecycle in Feed
+
+### Mistake 3: Creating a Table Without Table Decomposition Thinking
+This often leads to localized content in the main table or relation data in JSON.
+
+Correct approach:
+- apply the main, `_lang`, `_meta`, and relation model before writing SQL
+
+### Mistake 4: Treating Kit as a Dumping Ground
+Kit should not become a place to hide unclear ownership.
+
+Correct approach:
+- only move logic into Kit when it is truly module-local and reusable
+
+## Related Documents
+- [module_design.md](module_design.md)
+- [data_modeling.md](data_modeling.md)
+- [feed_guide.md](feed_guide.md)
+- [sd_conventions.md](sd_conventions.md)
+- [data_architecture_checklist.md](data_architecture_checklist.md)
+- [pr_review_checklist.md](pr_review_checklist.md)
+
+## Status
+- Draft v1 aligned with guide system

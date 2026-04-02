@@ -1,0 +1,346 @@
+# F3CMS Module Design Guide
+
+## Purpose
+- Define how business entities map to modules.
+- Clarify responsibility boundaries across Feed, Reaction, Outfit, and Kit.
+- Prevent features from being implemented in the wrong layer.
+
+## Primary Readers
+- SA
+- SD
+- Backend programmers
+- LLMs proposing new module structures
+
+## Scope
+- Module creation criteria
+- Responsibility splitting
+- Cross-module interaction rules
+- Non-content modules such as AI, workflow, and integration modules
+
+## LLM Reading Contract
+- Assume module is the code boundary for one entity.
+- Prefer extending an existing module unless there is a clear new entity with its own lifecycle.
+- Use this guide when deciding file placement and responsibility boundaries.
+
+## Inputs
+- [overall.md](overall.md)
+- [data_modeling.md](data_modeling.md)
+- [create_new_module.md](create_new_module.md)
+
+## Core Thesis
+- Module is the code boundary of an entity in F3CMS.
+- If entity is the stable business concept, module is the stable implementation unit.
+- Therefore, module design should be driven by entity boundaries, not by screens, routes, or one-off APIs.
+
+## What a Module Means in F3CMS
+
+In many projects, folders are organized by feature page, transport type, or framework convention. In F3CMS, the module has a more specific meaning: it is the implementation boundary for one entity and its surrounding behaviors.
+
+A module is not just a place to group files. It is the point where the following concerns are aligned around the same entity:
+- data access
+- backend interaction
+- frontend presentation
+- validation and utility support
+
+This means that a module should remain meaningful even if:
+- the frontend is redesigned
+- new API endpoints are added
+- backend workflows change
+- additional metadata or localized content is introduced
+
+If a folder only makes sense because one page exists, it is probably not a true module. If it still makes sense when the UI changes because it represents a stable business object, it is probably a valid module.
+
+## How Entities Map to Modules
+
+The default mapping rule is:
+- one entity maps to one module
+
+This rule exists because the same entity usually needs consistent handling across multiple layers. For example, an entity may need:
+- a Feed for persistence and query behavior
+- a Reaction for backend JSON actions
+- an Outfit for frontend rendering or page flow
+- a Kit for validation rules and module-specific utilities
+
+If those responsibilities are spread across multiple unrelated folders, the entity boundary becomes unclear and the codebase starts to drift toward duplication and special-case logic.
+
+### Practical Interpretation
+
+When you identify an entity, you should immediately ask:
+- what is its module name?
+- what is its main table?
+- does it need Feed only, or Feed plus Reaction, Outfit, and Kit?
+
+The answer to these questions creates a stable path from requirement to code structure.
+
+## Module Creation Criteria
+
+Create a new module when the business object has enough independence to justify its own boundary.
+
+Strong indicators include:
+- it has its own main table
+- it has an independent lifecycle or status model
+- it needs separate backend actions
+- it has ownership, permissions, or audit behavior distinct from another entity
+- it is likely to be listed, queried, or managed directly
+
+Examples of entities that clearly justify modules:
+- Post
+- Press
+- Staff
+- Menu
+- Draft
+- Conversation
+
+### Signs That a New Module Is Justified
+
+Create a new module if most of these are true:
+- the object can be named independently in business language
+- the object can exist even if one specific page disappears
+- the object has a meaningful row identity of its own
+- the object needs its own Feed methods rather than being stored as a field only
+- the object needs separate status transitions, list pages, or workflow states
+
+### Signs That a New Module Is Not Yet Justified
+
+Do not create a new module if most of these are true:
+- it is only one extra attribute of an existing entity
+- it only exists to support one screen variation
+- it is just one localized text or one metadata bundle
+- it never needs separate querying or lifecycle control
+
+## When to Extend an Existing Module
+
+Many changes in F3CMS should extend an existing module rather than create a new one.
+
+Typical extension cases include:
+- adding a stable field to the entity's main table
+- adding localized content to the entity's `_lang` table
+- adding optional metadata to the entity's `_meta` table
+- adding a relation table for a new many-to-many association
+- adding a new backend action for the same entity
+- adding a new frontend rendering mode for the same entity
+
+### Examples
+
+Extend Post when:
+- a new `layout` type is introduced
+- a new metadata field supports SEO or CTA configuration
+- a new frontend page variant renders the same post entity differently
+
+Extend Press when:
+- a new relation to another entity is needed
+- a new publish-related status or display option is introduced
+
+Do not create a separate module just because:
+- a page has a special editor
+- a new API endpoint is added
+- one workflow step needs a custom button
+
+Those are often interaction-layer changes, not new entity boundaries.
+
+## Layer Responsibilities
+
+F3CMS module design depends on clear layer responsibilities.
+
+### Feed
+
+Feed is the entity's data access and data lifecycle layer.
+
+Feed is responsible for:
+- persistence
+- retrieval
+- list queries
+- metadata and language save behavior
+- relation save behavior
+- query defaults and filters
+
+Feed should not become:
+- a page renderer
+- a transport handler
+- a catch-all business workflow engine unrelated to data lifecycle
+
+### Reaction
+
+Reaction is the backend interaction layer for JSON-oriented operations.
+
+Reaction is responsible for:
+- reading request data
+- permission checks
+- validation orchestration through Kit
+- calling Feed methods
+- returning backend responses
+
+Reaction should not become:
+- the primary home of data logic
+- a place where raw SQL is duplicated across actions
+- the long-term storage model definition
+
+### Outfit
+
+Outfit is the frontend presentation and route orchestration layer.
+
+Outfit is responsible for:
+- page-level request flow
+- render orchestration
+- selecting templates or theme output
+- preparing view-facing data
+
+Outfit should not become:
+- the main write path for entity data
+- a place where business persistence rules are invented separately from Feed
+
+### Kit
+
+Kit is the module-local rule and utility layer.
+
+Kit is responsible for:
+- validation rules
+- lightweight helper logic specific to the module
+- reusable utility behavior needed by Reaction or Outfit
+
+Kit should not become:
+- a second Feed
+- an arbitrary dumping ground for unrelated functions
+
+### Theme
+
+Theme is not part of the module folder by default, but it is still part of the overall design system.
+
+Theme is responsible for:
+- HTML output
+- reusable presentation templates
+- keeping presentation code separate from module logic
+
+## Cross-Layer Communication Patterns
+
+To keep modules coherent, each layer should communicate in predictable ways.
+
+### Reaction to Feed
+- Reaction receives the request.
+- Reaction resolves validation and permissions.
+- Reaction delegates persistence and retrieval to Feed.
+
+### Outfit to Feed
+- Outfit resolves route or page context.
+- Outfit reads entity data through Feed.
+- Outfit prepares variables for theme rendering.
+
+### Reaction to Kit
+- Reaction uses Kit to obtain rules or module-specific helpers.
+- Kit supports Reaction, but does not replace Feed.
+
+### Feed to Other Entities
+- Feed may use relation patterns or helper methods to interact with other entities.
+- Cross-entity access should remain explicit and justified.
+
+The key principle is:
+- data lifecycle belongs in Feed
+- transport and route behavior belong in Reaction or Outfit
+
+## Cross-Module Interaction Patterns
+
+Modules do not live in isolation. Entities relate to each other. However, cross-module interaction must remain structurally clear.
+
+### Preferred Cross-Module Patterns
+- use relation tables for many-to-many associations
+- use `oneOpt()`-style lookup methods for option mapping
+- use Feed helper methods for reading related entities
+- use common helpers only when the logic is not owned by a single entity
+
+### Use Direct Module Calls Carefully
+
+Calling another module's Feed method is acceptable when:
+- the other entity is genuinely part of the current entity's read or write model
+- the relationship is structurally meaningful
+- duplication would be worse than the dependency
+
+Do not create hidden coupling where one module silently owns another module's rules.
+
+### Good Pattern
+- Press uses Author through relation tables and explicit Feed helpers.
+
+### Bad Pattern
+- an unrelated module writes directly into another module's main table because a shortcut seemed convenient.
+
+## Example Module Shapes
+
+Not every module has the same visible surface, but all valid modules are still centered on one entity.
+
+### Content Module
+- has Feed, Reaction, Outfit, maybe Kit
+- examples: Post, Press
+
+### Backend-Oriented Module
+- has Feed and Reaction, minimal or no Outfit
+- examples: administrative or workflow modules
+
+### Taxonomy or Hierarchy Module
+- strong use of `parent_id` and relation helpers
+- examples: Tag, Menu, Category
+
+### Integration or AI-Support Module
+- may not be classic CMS content
+- still qualifies as a module if it has its own entity model, lifecycle, and storage
+- examples: Draft, Conversation
+
+### Feed-Only or Minimal Module
+- acceptable if the entity exists mainly for persistence and lookup support
+- still must have a clear entity identity
+
+## Common Module Design Mistakes
+
+### Page-First Module Creation
+Creating a module because a new screen exists is a mistake unless a new entity also exists.
+
+### Too Much Logic in Reaction
+If Reaction methods start deciding how data is structured, persisted, normalized, and related, the entity boundary is already being eroded.
+
+### Using Outfit for Writes
+If Outfit starts becoming the main place for data mutation, the page layer and data layer are being mixed.
+
+### Treating Kit as a Dump Area
+If module rules, generic helpers, and random convenience methods are all dropped into Kit, the code loses discoverability.
+
+### Duplicating Entity Logic Across Modules
+If two modules each partially own the same entity rules, the system becomes difficult to reason about and difficult for LLMs to model correctly.
+
+## Decision Matrix
+
+Use the following decision logic when deciding where a change belongs.
+
+### Create a New Module when
+- there is a new entity
+- the entity has a separate lifecycle
+- separate management or querying is expected
+
+### Extend an Existing Module when
+- the change is an attribute, language field, metadata field, or relation of an existing entity
+- the behavior still belongs to the same business object
+
+### Add a Helper or Shared Utility when
+- the logic is not owned by one entity
+- the logic is reused across modules
+- the logic does not redefine the data boundary of an entity
+
+### Add a New Page or API Action without New Module when
+- the entity remains the same
+- only the interaction surface changes
+
+## Design Questions to Ask Before Implementing
+
+1. What is the entity behind this requirement?
+2. Does that entity already have a module?
+3. Is this a new entity or only a new interaction surface?
+4. Which layer should own the behavior?
+5. If a new module is proposed, what is its main table and lifecycle?
+6. Would the module still make sense if the current page design changed?
+
+If the final answer depends entirely on a single page layout, the proposed module boundary is probably wrong.
+
+## Related Documents
+- [data_modeling.md](data_modeling.md)
+- [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
+- [sd_conventions.md](sd_conventions.md)
+
+## Status
+- Draft v1 complete

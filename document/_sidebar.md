@@ -1,9 +1,26 @@
 - [Home](README.md)
 - Guides
+  - [Guides Index](guides/index.md)
+  - Foundations
+    - [Overall Guide](guides/overall.md)
   - [Setup Guide](guides/setup.md)
-  - [Create Module Guide](guides/create_new_module.md)
+  - Onboarding
+    - [30-Minute Onboarding](guides/new_engineer_30min.md)
+  - Design
+    - [SA Requirement Breakdown](guides/sa_requirement_breakdown.md)
+    - [Data Modeling](guides/data_modeling.md)
+    - [Module Design](guides/module_design.md)
+    - [SD Conventions](guides/sd_conventions.md)
+  - Implementation
+    - [Feed Guide](guides/feed_guide.md)
+    - [Query and Performance](guides/query_and_performance.md)
+    - [Create Module Guide](guides/create_new_module.md)
+  - Validation
+    - [Data Architecture Checklist](guides/data_architecture_checklist.md)
+    - [PR Review Checklist](guides/pr_review_checklist.md)
+  - Writing
   - [Coding Style](guides/coding_style.md)
-  - [Markdown Guide](guides/markdown_guide.md)
+    - [Markdown Guide](guides/markdown_guide.md)
 - Reference
   - [F3CMS Intro](reference/intro.md)
   - [Feed Reference](reference/feed_reference.md)
