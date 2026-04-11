@@ -33,6 +33,8 @@
 - [data_architecture_checklist.md](data_architecture_checklist.md)
 - [module_design.md](module_design.md)
 - [feed_guide.md](feed_guide.md)
+- [idea_md_writing_guide.md](idea_md_writing_guide.md)
+- [idea_md_role_examples.md](idea_md_role_examples.md)
 - [new_engineer_30min.md](new_engineer_30min.md)
 - [pr_review_checklist.md](pr_review_checklist.md)
 - [query_and_performance.md](query_and_performance.md)
@@ -51,6 +53,7 @@ Choose the entry path based on the question you are trying to answer.
 
 If the question is:
 - what F3CMS is and how the system is shaped, start from `overall.md`
+- how to write a high-quality FDD `idea.md`, start from `idea_md_writing_guide.md`
 - how to break requirements into modules, start from `sa_requirement_breakdown.md`
 - how to design schema and table structure, start from `data_modeling.md`
 - how to decide whether a new module is needed, start from `module_design.md`
@@ -74,6 +77,7 @@ When two documents appear to overlap, use the following priority rules.
 - If a newer guide conflicts with older narrative wording, prefer the newer guide for operational decisions.
 
 ### Design Precedence
+- For early FDD requirement-basis quality, prefer `idea_md_writing_guide.md`.
 - For schema decisions, prefer `data_modeling.md`.
 - For module boundary decisions, prefer `module_design.md`.
 - For SA-side requirement decomposition, prefer `sa_requirement_breakdown.md`.
@@ -128,6 +132,16 @@ This section describes what each document is for and when it should be opened.
 - Use when joins, pagination, filtering, indexing, or expensive list pages are involved.
 - Read when performance risk appears before or after implementation.
 
+#### [idea_md_writing_guide.md](idea_md_writing_guide.md)
+- Primary source for writing a high-quality FDD `idea.md`.
+- Use when the feature is still forming and the team needs a stable initial requirement basis before discuss or planning.
+- Read before approving an early-stage feature document as "good enough".
+
+#### [idea_md_role_examples.md](idea_md_role_examples.md)
+- Practical examples showing how SA, SD, and DBA write the same `idea.md` differently.
+- Use after reading `idea_md_writing_guide.md` when the team needs concrete role-oriented samples.
+- Best for onboarding, review calibration, and LLM prompting examples.
+
 #### [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
 - Primary source for turning business requirements into entities, module boundaries, and handoff structure.
 - Use during discovery, scoping, and early solution shaping.
@@ -177,25 +191,39 @@ The reading paths below are ordered. Read in sequence unless you already know th
 
 ### For SA
 1. [overall.md](overall.md)
-2. [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
-3. [data_modeling.md](data_modeling.md)
-4. [module_design.md](module_design.md)
-5. [data_architecture_checklist.md](data_architecture_checklist.md)
+2. [idea_md_writing_guide.md](idea_md_writing_guide.md)
+3. [idea_md_role_examples.md](idea_md_role_examples.md)
+4. [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
+5. [data_modeling.md](data_modeling.md)
+6. [module_design.md](module_design.md)
+7. [data_architecture_checklist.md](data_architecture_checklist.md)
 
 This path is for requirement decomposition, scope control, and handoff quality.
 
 ### For SD
 1. [overall.md](overall.md)
-2. [data_modeling.md](data_modeling.md)
-3. [module_design.md](module_design.md)
-4. [sd_conventions.md](sd_conventions.md)
-5. [feed_guide.md](feed_guide.md)
-6. [create_new_module.md](create_new_module.md)
-7. [data_architecture_checklist.md](data_architecture_checklist.md)
-8. [query_and_performance.md](query_and_performance.md)
-9. [pr_review_checklist.md](pr_review_checklist.md)
+2. [idea_md_writing_guide.md](idea_md_writing_guide.md)
+3. [idea_md_role_examples.md](idea_md_role_examples.md)
+4. [data_modeling.md](data_modeling.md)
+5. [module_design.md](module_design.md)
+6. [sd_conventions.md](sd_conventions.md)
+7. [feed_guide.md](feed_guide.md)
+8. [create_new_module.md](create_new_module.md)
+9. [data_architecture_checklist.md](data_architecture_checklist.md)
+10. [query_and_performance.md](query_and_performance.md)
+11. [pr_review_checklist.md](pr_review_checklist.md)
 
 This path is for turning a validated requirement into a convention-aligned implementation.
+
+### For DBA
+1. [overall.md](overall.md)
+2. [idea_md_writing_guide.md](idea_md_writing_guide.md)
+3. [idea_md_role_examples.md](idea_md_role_examples.md)
+4. [data_modeling.md](data_modeling.md)
+5. [query_and_performance.md](query_and_performance.md)
+6. [data_architecture_checklist.md](data_architecture_checklist.md)
+
+This path is for reviewing whether an early feature idea has enough data, lifecycle, and query clarity before schema or migration work begins.
 
 ### For Backend Programmers
 1. [new_engineer_30min.md](new_engineer_30min.md)
@@ -236,9 +264,18 @@ Use this section when the reader has a concrete task rather than a role identity
 
 ### Task: Break Down a New Requirement
 1. [overall.md](overall.md)
-2. [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
-3. [data_modeling.md](data_modeling.md)
-4. [module_design.md](module_design.md)
+2. [idea_md_writing_guide.md](idea_md_writing_guide.md)
+3. [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
+4. [data_modeling.md](data_modeling.md)
+5. [module_design.md](module_design.md)
+
+### Task: Review an Early idea.md
+1. [idea_md_writing_guide.md](idea_md_writing_guide.md)
+2. [idea_md_role_examples.md](idea_md_role_examples.md)
+3. [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
+4. [data_modeling.md](data_modeling.md)
+5. [module_design.md](module_design.md)
+6. [query_and_performance.md](query_and_performance.md)
 
 ### Task: Decide Whether to Create a New Module
 1. [module_design.md](module_design.md)

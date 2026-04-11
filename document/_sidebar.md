@@ -7,6 +7,8 @@
   - Onboarding
     - [30-Minute Onboarding](guides/new_engineer_30min.md)
   - Design
+    - [FDD idea.md Writing Guide](guides/idea_md_writing_guide.md)
+    - [FDD idea.md Role Examples](guides/idea_md_role_examples.md)
     - [SA Requirement Breakdown](guides/sa_requirement_breakdown.md)
     - [Data Modeling](guides/data_modeling.md)
     - [Module Design](guides/module_design.md)

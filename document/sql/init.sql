@@ -1130,18 +1130,21 @@ CREATE TABLE IF NOT EXISTS `tbl_press_term` (
 -- --------------------------------------------------------
 
 --
--- 資料表結構 `tbl_press_trace`
+-- 資料表結構 `tbl_press_log`
 --
 
-DROP TABLE IF EXISTS `tbl_press_trace`;
-CREATE TABLE IF NOT EXISTS `tbl_press_trace` (
+DROP TABLE IF EXISTS `tbl_press_log`;
+CREATE TABLE IF NOT EXISTS `tbl_press_log` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `press_id` int(11) NOT NULL,
+  `parent_id` int(11) NOT NULL,
+  `action_code` varchar(64) NOT NULL DEFAULT '',
+  `old_state_code` varchar(64) DEFAULT NULL,
+  `new_state_code` varchar(64) DEFAULT NULL,
   `last_ts` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `insert_ts` timestamp NOT NULL DEFAULT current_timestamp(),
   `insert_user` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `press_id` (`press_id`)
+  KEY `parent_id` (`parent_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -1400,6 +1403,7 @@ CREATE TABLE IF NOT EXISTS `tbl_tag_related` (
   `tag_id` int(11) NOT NULL,
   `sorter` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
