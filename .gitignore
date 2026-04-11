@@ -33,3 +33,6 @@ database/performance_schema/*
 conf/nginx/letsencrypt/*f3cms*.pem
 
 gene-panel-v2
+
+# FDD current target spec pointer
+document/spec/.current-spec.md
