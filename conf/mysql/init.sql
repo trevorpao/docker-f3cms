@@ -180,6 +180,23 @@ CREATE TABLE `tbl_collection_lang` (
 -- --------------------------------------------------------
 
 --
+-- 資料表結構 `tbl_press_log`
+--
+
+CREATE TABLE `tbl_press_log` (
+  `id` int(11) NOT NULL,
+  `parent_id` int(11) NOT NULL,
+  `action_code` varchar(64) NOT NULL DEFAULT '',
+  `old_state_code` varchar(64) DEFAULT NULL,
+  `new_state_code` varchar(64) DEFAULT NULL,
+  `last_ts` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `insert_ts` timestamp NOT NULL DEFAULT current_timestamp(),
+  `insert_user` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
 -- 資料表結構 `tbl_contact`
 --
 
@@ -877,6 +894,13 @@ ALTER TABLE `tbl_press_lang`
   ADD KEY `lang_pid` (`lang`,`parent_id`);
 
 --
+-- 資料表索引 `tbl_press_log`
+--
+ALTER TABLE `tbl_press_log`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `parent_id` (`parent_id`);
+
+--
 -- 資料表索引 `tbl_press_meta`
 --
 ALTER TABLE `tbl_press_meta`
@@ -1007,6 +1031,12 @@ ALTER TABLE `tbl_press`
 --
 ALTER TABLE `tbl_press_lang`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- 使用資料表 AUTO_INCREMENT `tbl_press_log`
+--
+ALTER TABLE `tbl_press_log`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用資料表 AUTO_INCREMENT `tbl_press_meta`
