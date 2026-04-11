@@ -150,7 +150,7 @@ Examples:
 - use the base entity name plus a descriptive suffix
 
 Examples:
-- `tbl_press_trace`
+- `tbl_press_log`
 - import, log, or raw extensions when structurally justified
 
 ### Alignment Rule

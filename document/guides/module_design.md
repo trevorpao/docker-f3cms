@@ -202,6 +202,26 @@ Kit should not become:
 - a second Feed
 - an arbitrary dumping ground for unrelated functions
 
+## WorkflowEngine Integration Pattern
+
+When a module needs workflow judgment, WorkflowEngine should be treated as a shared library under `libs/`, not as a new module or a shared persistence owner.
+
+### Stable Rules
+
+- module owns the business entity, workflow definition source, and workflow audit persistence
+- WorkflowEngine owns workflow rule evaluation only
+- Feed persists business rows and module-owned log rows, but does not become the place where workflow rules are invented
+- Reaction handles action requests and coordinates transaction boundaries
+- Outfit may ask WorkflowEngine for display-facing projection such as current stage or available actions
+- Kit may wrap module-local workflow helpers, but should not replace WorkflowEngine itself
+
+### What Not To Do
+
+- do not create a generic workflow module just to hold shared instance tables
+- do not move entity ownership away from the module because workflow exists
+- do not let Feed absorb generic workflow branching logic that belongs in WorkflowEngine
+- do not treat retired workflow instance persistence APIs as valid integration entry points
+
 ### Theme
 
 Theme is not part of the module folder by default, but it is still part of the overall design system.
@@ -220,10 +240,20 @@ To keep modules coherent, each layer should communicate in predictable ways.
 - Reaction resolves validation and permissions.
 - Reaction delegates persistence and retrieval to Feed.
 
+### Reaction to WorkflowEngine
+- Reaction loads the target workflow JSON from the module's chosen source.
+- Reaction assembles runtime context from the entity's current state and operator context.
+- Reaction asks WorkflowEngine whether the requested action is allowed before writing business data.
+- Reaction keeps module-owned workflow log writes and business-row updates inside the same transaction when audit consistency matters.
+
 ### Outfit to Feed
 - Outfit resolves route or page context.
 - Outfit reads entity data through Feed.
 - Outfit prepares variables for theme rendering.
+
+### Outfit to WorkflowEngine
+- Outfit may use WorkflowEngine projection to render state labels, available actions, or next-step hints.
+- Outfit should remain display-oriented and should not invent write-side workflow persistence rules.
 
 ### Reaction to Kit
 - Reaction uses Kit to obtain rules or module-specific helpers.

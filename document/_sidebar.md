@@ -21,11 +21,12 @@
   - Writing
   - [Coding Style](guides/coding_style.md)
     - [Markdown Guide](guides/markdown_guide.md)
-- Reference
-  - [F3CMS Intro](reference/intro.md)
-  - [Feed Reference](reference/feed_reference.md)
-  - [Reaction Reference](reference/reaction_reference.md)
-  - [Outfit Reference](reference/outfit_reference.md)
+- [Glossary](glossary.md)
+- References
+  - [Reference Index](reference/intro.md)
+  - [Feed Function Reference](reference/feed_reference.md)
+  - [Reaction Function Reference](reference/reaction_reference.md)
+  - [Outfit Function Reference](reference/outfit_reference.md)
 - Examples
   - [Cashier Usage](examples/cashier_usage.md)
   - [Sender Usage](examples/sender_usage.md)

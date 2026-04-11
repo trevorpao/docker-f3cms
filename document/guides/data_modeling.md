@@ -155,10 +155,37 @@ If the data expresses a real relationship, it should be modeled relationally ins
 Some entities need additional non-lang, non-meta secondary tables that capture traces, histories, or specialized sub-structures.
 
 Examples:
-- `tbl_press_trace`
+- `tbl_press_log`
 - raw/import/log-like extensions
 
 Use this pattern when the data is structurally meaningful and grows independently, but is still clearly subordinate to the parent entity.
+
+### Module-owned Workflow Log Pattern
+
+When an entity adopts workflow control, its audit trail should normally be stored in a module-owned log table rather than in a shared workflow runtime table.
+
+Typical rules:
+- the log remains subordinate to the entity's module
+- the conceptual name may be `press_log` or `order_log`
+- the physical table name should still follow F3CMS naming conventions such as `tbl_press_log`
+- the table should be designed for auditability, not as a generic replacement for the entity's main table
+
+Recommended minimum fields:
+- `parent_id`
+- `insert_user`
+- `action_code`
+- `old_state_code`
+- `new_state_code`
+- `insert_ts`
+
+Optional fields when the workflow path needs richer traceability:
+- `remark`
+- `branch_token`
+- `parallel_group_code`
+- `join_group_code`
+- `extra_context_json`
+
+Do not introduce a shared `tbl_workflow_instance` or `tbl_workflow_instance_trace` style schema unless the project explicitly reopens that architecture decision. In current F3CMS practice, workflow runtime context is assembled from module-owned business data plus module-owned logs.
 
 ## Field Placement Decision Rules
 
