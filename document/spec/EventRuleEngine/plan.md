@@ -24,6 +24,7 @@
 
 因此目前承接點為：
 - feature 已從純 `plan` 推進到 `(done)` 後可進入 `check` 的承接點
+- 但目前實作位置出現新的 architectural drift：現有 `www/f3cms/libs` 內骨架超出 F3CMS 對 `libs` 的責任邊界；既然需求牽涉實體資料表，後續主體必須回到 module，只保留最小 JSON parser 在 `libs`
 - 目前尚未進入 `(Optimization)`，因為仍有 integration 與驗收缺口待盤點
 - 本文件目前的角色是維持 EventRuleEngine 第一版骨架與後續收斂順序的正式基線
 
@@ -388,10 +389,10 @@ leaf node 最小欄位：
 ##### A. 第一版最小執行骨架
 
 第一版執行路徑應明確切成五段，而不是讓 controller / reaction 直接把原始 JSON 丟進 evaluator：
-- `DutyRuleLoader`：從 `tbl_duty.claim` 或 `factor` 取出原始 payload
-- `PayloadValidator`：驗證 payload 結構是否合法
-- `RuleParser`：將 raw array 正規化成可遞迴處理的 AST node 結構
-- `RuleEngine`：只負責 group traversal、short-circuit 與 evaluator dispatch
+- `DutyRuleLoader`：由 module service / reaction 從 `tbl_duty.claim` 或 `factor` 取出原始 payload
+- `PayloadValidator`：由 module 端負責驗證 payload 結構是否合法
+- `RuleParser`：作為 `libs` 中唯一需要保留的最小共用元件，將 raw array 正規化成可遞迴處理的 AST node 結構
+- `RuleEngine`：屬於 module 端的判斷服務，只負責 group traversal、short-circuit 與 evaluator dispatch
 - `EvaluationResult`：回傳本次判斷結果、失敗原因類別與必要 trace
 
 最小執行順序：
@@ -472,11 +473,13 @@ registry 規則：
 - 將 raw JSON array 正規化
 - 補齊 group node / leaf node 的內部一致格式
 - 建立可供 engine 遞迴的 AST 表示
+- 為 `libs` 中唯一需要保留的 EventRuleEngine 元件，不依賴資料表、cache、reaction 或 workflow side effect
 
 `RuleEngine`：
 - 假設輸入已通過 validator / parser
 - 只負責 traverse、short-circuit、dispatch evaluator、彙總結果
 - 不再重做 request-level schema 驗證
+- 屬於 module / reaction 的業務落地，不長期放在 `libs`
 
 這個切分的目的，是避免同一份規則同時在 validator、parser、engine 重複判斷，造成三套規則漂移。
 
@@ -506,6 +509,7 @@ registry 規則：
 ##### F. 與上層模組的整合邊界
 
 比照現有 WorkflowEngine 與 Press reaction 的責任切分，EventRuleEngine 應維持以下邊界：
+- 只要牽涉 `tbl_duty`、`tbl_task`、`tbl_task_log`、`tbl_member_heraldry`、`tbl_manaccount`、`tbl_manaccount_log` 等實體表，就必須由 module / reaction / service 承接，而不是放在 `libs`
 - module / reaction 負責載入 duty、建立 `PlayerContext`、決定要驗證 `claim` 或 `factor`
 - RuleEngine 負責純判斷
 - task / account 狀態寫回與 log 寫入由 module service 或 reaction 負責
@@ -597,6 +601,7 @@ module / reaction 與 engine 的整合至少需驗證以下責任邊界：
 - log insert 仍由 module service / reaction 負責
 
 第一版不可接受的整合退化：
+- 把依賴實體資料表的主體流程長期留在 `www/f3cms/libs`
 - engine 內直接寫 task log
 - engine 內直接寫 manaccount log
 - engine 內直接判斷並執行 reward 發放
@@ -606,13 +611,14 @@ module / reaction 與 engine 的整合至少需驗證以下責任邊界：
 
 當前已具備進入 `(done)` 前的最小規劃基線，第一版建議落地順序如下：
 1. 先實作 payload validator + parser
-2. 再實作 registry 與 `RuleEngine` traversal
-3. 再實作三個第一版 evaluator
-4. 再實作 `PlayerContext` preload contract 與 module integration adapter
-5. 最後補齊驗收案例與 smoke / fixture
+2. 再把 parser 以外的 EventRuleEngine 主體收斂到 module 邊界
+3. 再實作 registry 與 `RuleEngine` traversal
+4. 再實作三個第一版 evaluator
+5. 再實作 `PlayerContext` preload contract 與 module integration adapter
+6. 最後補齊驗收案例與 smoke / fixture
 
 這個順序的目的，是讓 fail-closed 與 contract drift 先被固定，不要等到 module integration 後才發現核心判斷規則仍在變動。
 
 ## Current Next Step
 
-下一步應承接 `check`，先盤點目前第一版骨架已完成與未完成項，特別是 module integration adapter、payload source 與更多 rule / fixture 驗證是否要進入下一輪實作。
+下一步應承接 `check`，先盤點目前第一版骨架已完成與未完成項，特別是把 parser 以外的 table-backed 責任從 `libs` 收斂回 module、再處理 module integration adapter、payload source 與更多 rule / fixture 驗證是否要進入下一輪實作。

@@ -14,6 +14,7 @@
 - [x] 已建立 `check.md`
 - [x] 已完成第一版骨架程式實作
 - [x] 已完成 Docker smoke 驗證
+- [x] 已明確確認「有實體資料表需求時，主體必須落在 module；`libs` 只保留最小 JSON parser」的 F3CMS 架構規則
 
 ## 第一版驗收清單
 
@@ -47,6 +48,8 @@
 ### E. 模組整合邊界
 - [x] module / reaction 與 RuleEngine 的責任分界是否已明確
 - [x] task / account 寫回與 log insert 不進入 engine 的原則是否已明確
+- [x] 是否已明確規定 table-backed 業務流程不可長期放在 `libs`
+- [x] 是否已明確規定 `libs` 只保留最小 EventRuleEngine JSON parser
 
 ### F. 驗收與 Fallback 基線
 - [x] fail-closed 情境是否已被整理成明確驗收點
@@ -59,10 +62,11 @@
 - [x] payload validator、parser、registry 與 RuleEngine traversal 是否已有第一版實作
 - [x] `WATCHED_VIDEO`、`EXAM_SCORE`、`HAS_BADGE` evaluator 是否已有第一版實作
 - [x] Docker smoke 是否已覆蓋 `matched`、`not_matched`、`invalid_payload`、`missing_evaluator`、`context_error`
+- [ ] parser 以外的 EventRuleEngine 主體是否已從 `www/f3cms/libs` 收斂回 module 邊界
 - [ ] module / reaction integration adapter 是否已實作
 - [ ] payload source 是否已由實際 duty / claim / factor 載入路徑承接
 - [ ] 是否已補獨立 fixture 或更多 edge-case smoke
 
 ## Current Next Step
 
-下一步應承接 `check`，先確認第一版骨架的完成邊界與缺口，特別是 module integration、payload source 承接與更多 edge-case 驗證是否列為下一輪 `(done)` 範圍。
+下一步應承接 `check`，先確認第一版骨架的完成邊界與缺口，優先處理 parser 以外的 EventRuleEngine 主體從 `libs` 收斂回 module，之後再決定 module integration、payload source 承接與更多 edge-case 驗證是否列為下一輪 `(done)` 範圍。

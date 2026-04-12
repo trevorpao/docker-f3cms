@@ -10,6 +10,7 @@
 
 ### 3. 範圍 (Scope)
 *   **JSON DSL 結構化儲存**：將多層次巢狀條件 (如 AND、OR 及 >, <, ==) 序列化，並存入關聯式資料庫的原生 JSON 欄位中。
+*   **Module-first 業務落地**：凡是牽涉 `tbl_duty`、`tbl_task`、`tbl_task_log`、`tbl_member_heraldry`、`tbl_manaccount`、`tbl_manaccount_log` 等實體資料表的讀取、整合、狀態寫回與 audit trail，都必須落在 F3CMS module / reaction / service 層，而不是放在 `libs`。
 *   **開閉原則 (OCP) 規則引擎**：實作策略模式與組合模式，未來新增條件 (如「加入公會」) 僅需註冊新的 `Evaluator`，不需修改核心引擎。
 *   **無狀態資料提供者 (PlayerContext)**：作為 CQRS 讀取模型，於 Request 階段預載快取，餵給引擎驗證。
 *   **Schema 架構修正落地**：正式套用 JSON 型態欄位擴充、補齊 Module-owned Log (含新舊狀態追蹤)，以及建立明確的多對多關聯表 (如 `tbl_member_heraldry`)。
@@ -17,8 +18,10 @@
 ### 4. 非範圍 (Non-Scope)
 *   **前端可視化編輯器 (Visual Node Editor)**：第一版專注於後端引擎與資料層的儲存對接，暫不包含前端拖拉式藍圖編輯器的實作。
 *   **動態寫入與全域即時反查 API**：第一版暫不實作供企劃端使用的複雜條件全域反查 (如查出所有「需加入公會」的任務)，如有需求將另行規劃 GIN 索引。
+*   **將 table-backed 業務邏輯長期留在 `libs`**：`libs` 只保留最小的 EventRuleEngine JSON 解析器；凡是依賴實體資料表、PlayerContext preload、evaluator 組裝、module integration 或狀態寫回的內容，都不屬於 `libs` 的長期責任。
 
 ### 5. 核心物件與流程 (Core Objects or Processes)
+*   **RuleParser (最小 JSON 解析器)**：作為 `libs` 中唯一需要長期保留的 EventRuleEngine 共用元件，負責將原始 JSON / array 正規化為 AST 結構，不負責資料表讀取、context preload、evaluator 組裝或狀態寫回。
 *   **PlayerContext (資料提供者)**：負責從 Redis 或 DB 極速獲取玩家當前狀態與關聯資料 (如持有的紋章 ID 陣列)。
 *   **RuleEngine (遞迴引擎)**：負責遍歷 JSON AST 樹，並依據邏輯閘進行短路求值彙總結果。
 *   **Evaluators (策略實作)**：針對獨立的類型 (如 `EXAM_SCORE`, `HAS_BADGE`) 進行具體驗證邏輯。
@@ -103,6 +106,7 @@ erDiagram
 ### 8. 限制與依賴 (Constraints and Dependencies)
 *   **資料庫層級 (DB Level)**：第一版必須以專案既有的 MariaDB 10.4.6 相容行為為準，使用 JSON 型態語意承接 payload，但不預設可使用 PostgreSQL `JSONB`、GIN 或其他 PostgreSQL 專屬能力。所有針對餘額 (`tbl_manaccount.balance`) 或狀態 (`tbl_task.status`) 的更新必須包裝在具備原子性 (Atomic) 或樂觀鎖的 Transaction 內。
 *   **快取層級 (Cache Level)**：強烈依賴 Redis 進行 `PlayerContext` 的預載入 (Pipeline/MGET)，確保在驗證規則時能徹底消滅 N+1 查詢，實現無狀態的高效能運算。
+*   **F3CMS 架構層級 (Architecture Level)**：只要需求牽涉實體資料表，業務落地就必須以 module 為主；`libs` 僅能保留不依賴 table、cache、reaction 與 workflow side effect 的最小純 parser 元件。
 
 ### 9. 風險與未決問題 (Risks and Open Questions)
 *   **遞迴深度與記憶體耗盡 (OOM Risk)**：企劃若設定過度深層的 JSON 結構，可能導致伺服器解析時記憶體溢出。防禦決策：在 API 寫入 `tbl_duty` 時必須配置 Payload Validator，強制限制 JSON 抽象語法樹的最大深度 (如 max_depth = 5)。
