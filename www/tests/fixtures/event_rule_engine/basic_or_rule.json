@@ -1,0 +1,23 @@
+{
+  "operator": "OR",
+  "rules": [
+    {
+      "operator": "AND",
+      "rules": [
+        {
+          "type": "WATCHED_VIDEO",
+          "target": "vid_001"
+        },
+        {
+          "type": "EXAM_SCORE",
+          "operator": ">",
+          "value": 80
+        }
+      ]
+    },
+    {
+      "type": "HAS_BADGE",
+      "target": "badge_novice"
+    }
+  ]
+}

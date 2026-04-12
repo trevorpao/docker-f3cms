@@ -770,7 +770,7 @@ branch、parallel、join 所需資訊仍是第一版必要能力。
 1. `www/f3cms/modules/Press/reaction.php`：決定最小 runtime context 的取得與傳入方式
 2. `www/f3cms/libs/WorkflowEngine.php`：消費 runtime context，做 guard / projection / transition 判定
 3. `www/f3cms/modules/Press` 的 module-owned log 策略：決定 `press_log` 如何承接 workflow audit trail
-4. `www/f3cms/scripts/workflow_engine_instance_api_smoke.php`：維持不依賴 WorkflowEngine 專屬資料表的最小驗證
+4. `www/tests/smoke/workflow_engine/instance_api.php`：維持不依賴 WorkflowEngine 專屬資料表的最小驗證
 
 ### 不納入同批的項目
 - 不回補 `workflow_engine_runtime.sql`

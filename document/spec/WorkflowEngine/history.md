@@ -95,7 +95,7 @@
 6. 最新討論的下一步選項：先只做一件事，回退並重寫 `plan.md` 中 WorkflowEngine 專屬 schema / SQL 落地相關段落，改成不依賴 lib 專屬資料表的版本；在這一步完成前，不應進入 `(Optimization)`。
 
 ### 第 2 輪討論結果
-1. 前一輪已明確定下的下一步是補一支 instance-based public API 的最小 smoke；這一步現在已完成，新增檔案為 `www/f3cms/scripts/workflow_engine_instance_api_smoke.php`。
+1. 前一輪已明確定下的下一步是補一支 instance-based public API 的最小 smoke；這一步現在已完成，canonical 主路徑為 `www/tests/smoke/workflow_engine/instance_api.php`，且後續已在 TestMode 收尾輪完成 legacy wrapper retirement。
 2. 這支 smoke 直接載入 `www/f3cms/modules/Press/flow.json`，並驗證 `new WorkflowEngine($workflowJson, $options)`、`validateDefinition()`、`project()`、`canTransit()` 與最小 `transit()` 路徑，目的就是把新契約固定下來，而不是再回頭討論 API 方向。
 3. 目前沒有發現需要回退的前置假設：`Press` 以 module-local workflow JSON 驅動 engine、以及 instance API 可作為對 module 的主路徑，這兩個前提在這一步沒有被推翻。
 4. 目前卡住的 flow 階段仍是 `check` 後、尚未進入 `(Optimization)` 的承接點；但與前一輪相比，原本缺的「最小契約驗證點」已補上，剩下的問題已收斂為是否足以正式進入最後一步。

@@ -32,6 +32,7 @@
 - [data_modeling.md](data_modeling.md)
 - [data_architecture_checklist.md](data_architecture_checklist.md)
 - [fdd_porting_guide.md](fdd_porting_guide.md)
+- [testmode_development_guide.md](testmode_development_guide.md)
 - [module_design.md](module_design.md)
 - [feed_guide.md](feed_guide.md)
 - [idea_md_writing_guide.md](idea_md_writing_guide.md)
@@ -54,6 +55,7 @@ Choose the entry path based on the question you are trying to answer.
 
 If the question is:
 - what F3CMS is and how the system is shaped, start from `overall.md`
+- how TestMode-based smoke development should work after the migration, start from `testmode_development_guide.md`
 - how to write a high-quality FDD `idea.md`, start from `idea_md_writing_guide.md`
 - how to transplant FDD into another project, start from `fdd_porting_guide.md`
 - how to break requirements into modules, start from `sa_requirement_breakdown.md`
@@ -149,6 +151,11 @@ This section describes what each document is for and when it should be opened.
 - Use when the team wants to preserve LLM behavior, prompt entry points, and spec continuation rules across projects.
 - Read before copying prompts or workspace instructions into a new codebase.
 
+#### [testmode_development_guide.md](testmode_development_guide.md)
+- Primary source for TestMode-related smoke development after the first migration has stabilized.
+- Use when deciding where a smoke suite should live, how it should be named, how it should be validated, and which paths are no longer allowed.
+- Read before adding new smoke suites or reshaping existing ones under `www/tests/`.
+
 #### [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
 - Primary source for turning business requirements into entities, module boundaries, and handoff structure.
 - Use during discovery, scoping, and early solution shaping.
@@ -214,11 +221,12 @@ This path is for requirement decomposition, scope control, and handoff quality.
 4. [data_modeling.md](data_modeling.md)
 5. [module_design.md](module_design.md)
 6. [sd_conventions.md](sd_conventions.md)
-7. [feed_guide.md](feed_guide.md)
-8. [create_new_module.md](create_new_module.md)
-9. [data_architecture_checklist.md](data_architecture_checklist.md)
-10. [query_and_performance.md](query_and_performance.md)
-11. [pr_review_checklist.md](pr_review_checklist.md)
+7. [testmode_development_guide.md](testmode_development_guide.md) when the task involves smoke structure or validation contracts
+8. [feed_guide.md](feed_guide.md)
+9. [create_new_module.md](create_new_module.md)
+10. [data_architecture_checklist.md](data_architecture_checklist.md)
+11. [query_and_performance.md](query_and_performance.md)
+12. [pr_review_checklist.md](pr_review_checklist.md)
 
 This path is for turning a validated requirement into a convention-aligned implementation.
 
@@ -256,8 +264,9 @@ This path is for building a usable system model quickly without reading everythi
 ### For LLMs
 1. [index.md](index.md)
 2. [overall.md](overall.md) when broad context is missing
-3. [data_modeling.md](data_modeling.md)
-4. [module_design.md](module_design.md)
+3. [testmode_development_guide.md](testmode_development_guide.md) when the task involves smoke development or validation contracts
+4. [data_modeling.md](data_modeling.md)
+5. [module_design.md](module_design.md)
 5. [feed_guide.md](feed_guide.md)
 6. [sd_conventions.md](sd_conventions.md)
 7. [query_and_performance.md](query_and_performance.md) when query cost or join shape matters
