@@ -1,5 +1,12 @@
 # Flow Driven Development for LLM
 
+## 0. 指令對應
+
+- `FDD Focus`：切換 current spec，建立本輪承接焦點；不是 stage，本身是所有 stage 的前置入口
+- `FDD Sprint`：推進目前 spec 的最小下一步，主要服務 `plan`、`(done)`、`check`
+- `FDD Review`：校準目前 spec 的 stage、文件一致性、驗收狀態與程式 / 文件漂移
+- `FDD Retrospective`：只在主要實作與驗收完成後使用，直接對應 `(Optimization)`
+
 ## 1. Stage 判斷順序
 
 1. 先讀 `document/spec/<feature>/history.md`
