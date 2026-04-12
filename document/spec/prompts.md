@@ -80,7 +80,7 @@
 - 指出當前最小下一步
 - 若發現文件漂移，先說明要回退或同步的是哪一段，不要直接重做整份設計
 
-### FDD 執行模板
+### FDD Sprint 模板
 
 請依 Flow Driven Development 執行這一輪工作，並先套用以下常駐規則：
 
@@ -93,7 +93,7 @@
 
 回答與執行順序：
 1. 先讀 `document/spec/.current-spec.md`
-2. 若指標檔無效，立即中斷並要求先執行對應 `FDD Use ...` 指令
+2. 若指標檔無效，立即中斷並要求先執行 `FDD Focus`
 3. 再說明你讀了哪些 current spec 文件與目前判定的 flow stage
 4. 再說明本輪要做的最小範圍
 5. 若涉及驗證，優先採用 Docker / 既有 smoke 路徑
@@ -115,7 +115,7 @@
 
 Review 順序要求：
 1. 先讀 `document/spec/.current-spec.md`
-2. 若指標檔無效，立即中斷並要求先執行對應 `FDD Use ...` 指令
+2. 若指標檔無效，立即中斷並要求先執行 `FDD Focus`
 3. 再列出你讀了哪些 current spec 文件
 4. 先判斷目前處於哪一個 flow stage
 5. 檢查 `history.md`、`plan.md`、`check.md`、必要時 `idea.md` 是否彼此一致
@@ -128,7 +128,7 @@ Review 順序要求：
 - 若無重大 findings，也要明確說明目前一致、但仍有哪些殘餘風險或文件缺口
 - 不直接重寫整套 spec，除非使用者明確要求
 
-### FDD Optimize 模板
+### FDD Retrospective 模板
 
 請依 Flow Driven Development 執行 `(Optimization)` 階段工作，專注在 glossary / guides / references / optimization 收尾，不回頭擴張功能。
 
@@ -142,7 +142,7 @@ Review 順序要求：
 
 執行順序要求：
 1. 先讀 `document/spec/.current-spec.md`
-2. 若指標檔無效，立即中斷並要求先執行對應 `FDD Use ...` 指令
+2. 若指標檔無效，立即中斷並要求先執行 `FDD Focus`
 3. 先確認 current spec 是否已具備進入 `(Optimization)` 的條件
 4. 盤點哪些穩定規則、詞彙、流程或參考資訊應回寫到 glossary / guides / references
 5. 盤點 `optimization.md` 應收錄哪些收尾內容
@@ -176,7 +176,7 @@ Review 順序要求：
 - 列出遺漏規則、表述失真或多餘內容
 - 若要修改，以最小必要修改維持低 token 與高一致性
 
-### FDD Use Spec 模板
+### FDD Focus 模板
 
 請將當前目標 spec 切換為使用者指定的 `document/spec/<Spec>/`，並在此目標下承接後續工作。
 
@@ -186,20 +186,23 @@ Review 順序要求：
 - 以 `document/flow.md` 為完整規則參考
 - 先建立或更新 `document/spec/.current-spec.md`
 - 使用者提供的是 spec 資料夾名或 `document/spec/<Spec>` 路徑
-- 若目標 spec 不存在，立即中斷，不可猜測或自動替換成其他 feature
+- 先做精確比對；若精確比對失敗，且只差大小寫，允許用 case-insensitive 方式解析到唯一 spec
+- 若目標 spec 不存在，或 case-insensitive 結果不唯一，立即中斷，不可猜測或自動替換成其他 feature
 
 執行順序要求：
 1. 先解析使用者提供的 spec 名稱或路徑
-2. 確認對應的 `document/spec/<Spec>/` 是否存在
-3. 若不存在，立即中斷並回報有效錯誤
-4. 若存在，建立或更新 `document/spec/.current-spec.md`
-5. 再讀該 spec 的 `history.md`、`plan.md`、`check.md`
-6. 先回答目前 stage、上一輪完成項、當前最小下一步
-7. 將後續任務都視為在該 spec 目標下執行
+2. 先做精確比對；若精確比對失敗，再做 case-insensitive 比對
+3. 確認對應的 `document/spec/<Spec>/` 是否唯一存在
+4. 若不存在，或 case-insensitive 比對出現多個候選，立即中斷並回報有效錯誤
+5. 若存在，建立或更新 `document/spec/.current-spec.md`
+6. 再讀該 spec 的 `history.md`、`plan.md`、`check.md`
+7. 先回答目前 stage、上一輪完成項、當前最小下一步
+8. 將後續任務都視為在該 spec 目標下執行
 
 輸出要求：
 - 先明確說明 `document/spec/.current-spec.md` 已切換到哪個 spec
-- 若 spec 無效，先中斷並指出找不到哪個資料夾
+- 若是靠大小寫 fallback 才成功切換，也要一併說明
+- 若 spec 無效或大小寫比對結果不唯一，先中斷並指出找不到或無法唯一判定哪個資料夾
 - 若 spec 有效，先摘要目前承接點
 - 再處理使用者後續要求
 

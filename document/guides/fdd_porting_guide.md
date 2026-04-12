@@ -61,10 +61,10 @@ These two files define the stage model, entry and exit criteria, history-first c
 This file is what turns FDD from documentation into always-on working behavior. Without it, the LLM may stop reading `history.md` first, stop preferring Docker, or stop updating `plan.md` / `check.md` / `history.md` consistently.
 
 ### C. Prompt Entry Points
-- [../../.github/prompts/fdd-execute.prompt.md](../../.github/prompts/fdd-execute.prompt.md)
+- [../../.github/prompts/fdd-sprint.prompt.md](../../.github/prompts/fdd-sprint.prompt.md)
 - [../../.github/prompts/fdd-review.prompt.md](../../.github/prompts/fdd-review.prompt.md)
-- [../../.github/prompts/fdd-optimize.prompt.md](../../.github/prompts/fdd-optimize.prompt.md)
-- [../../.github/prompts/fdd-use-spec.prompt.md](../../.github/prompts/fdd-use-spec.prompt.md)
+- [../../.github/prompts/fdd-retrospective.prompt.md](../../.github/prompts/fdd-retrospective.prompt.md)
+- [../../.github/prompts/fdd-focus.prompt.md](../../.github/prompts/fdd-focus.prompt.md)
 
 Recommended to copy as well:
 - [../../.github/prompts/fdd-flow-llm-align.prompt.md](../../.github/prompts/fdd-flow-llm-align.prompt.md)
@@ -233,10 +233,10 @@ Do not wait until later to add `history.md`. The workflow breaks quickly without
 ### Step 4: Validate the Prompt Contract
 
 Test these prompt behaviors in the new project:
-- `FDD Use Spec`
-- `FDD Execute`
+- `FDD Focus`
+- `FDD Sprint`
 - `FDD Review`
-- `FDD Optimize`
+- `FDD Retrospective`
 
 The test should confirm that the LLM:
 - resolves `.current-spec.md`
@@ -265,7 +265,7 @@ Use this checklist before declaring the migration stable.
 - [ ] Workspace instructions tell the LLM where architecture truth lives
 - [ ] Workspace instructions tell the LLM how validation should run
 - [ ] Workspace instructions tell the LLM how DB verification should resolve source of truth
-- [ ] Prompt entry points exist for use-spec, execute, review, and optimize
+- [ ] Prompt entry points exist for focus, sprint, review, and retrospective
 - [ ] The spec root contains `.current-spec.md`
 - [ ] Feature folders use `idea.md`, `history.md`, `plan.md`, `check.md`, `optimization.md`
 - [ ] The LLM reads `history.md` before `plan.md` and `check.md`
@@ -314,6 +314,6 @@ If the LLM answers in the correct order and references the correct files, the mi
 ## Suggested Follow-Up Reading
 - [../flow.md](../flow.md)
 - [../flow.llm.md](../flow.llm.md)
-- [../../.github/prompts/fdd-execute.prompt.md](../../.github/prompts/fdd-execute.prompt.md)
-- [../../.github/prompts/fdd-use-spec.prompt.md](../../.github/prompts/fdd-use-spec.prompt.md)
+- [../../.github/prompts/fdd-sprint.prompt.md](../../.github/prompts/fdd-sprint.prompt.md)
+- [../../.github/prompts/fdd-focus.prompt.md](../../.github/prompts/fdd-focus.prompt.md)
 - [../spec/prompts.md](../spec/prompts.md)

@@ -1,6 +1,6 @@
 ### 第 6 輪討論結果
 1. 本輪承接第 5 輪留下的唯一下一步，已完成 EventRuleEngine 第一版最小程式骨架實作，新增了 `EventRuleEngine`、payload validator、parser、registry、`PlayerContext`、evaluation result 結構與三個第一版 evaluator，讓 Stage 3 / Stage 4 的規劃首次落成可執行程式。
-2. 本輪同時新增 Docker 可跑的 `event_rule_engine_smoke.php`，並已使用專案既有容器環境完成驗證；目前 smoke 已覆蓋 `matched`、`not_matched`、`invalid_payload`、`missing_evaluator` 與 `context_error` 五條最小驗證路徑。
+2. 本輪同時新增 Docker 可跑的 `event_rule_engine_smoke.php`，並已使用專案既有容器環境完成驗證；目前 canonical 主路徑已切到 `www/tests/smoke/event_rule_engine/basic_or_rule.php`，且後續已在 TestMode 收尾輪完成 legacy wrapper retirement；smoke 已覆蓋 `matched`、`not_matched`、`invalid_payload`、`missing_evaluator` 與 `context_error` 五條最小驗證路徑。
 3. 驗證結果顯示目前第一版骨架與 spec 收斂方向一致：validator 可阻擋非法 payload、registry 缺漏會 fail-closed、context 缺值不會默默補查資料，且三個第一版 rule types 已可被 traversal 正常 dispatch。
 4. 因此目前 feature 已不再只是純 `plan` 狀態，而是已完成一輪 `(done)` 的最小骨架落地，接下來較合理的承接點是 `check`：盤點這輪骨架實作已完成與仍未完成的 integration / fixture 缺口。
 5. 本輪沒有看到新的文件 / 程式 drift；相反地，本輪已把程式實作、Docker 驗證結果與 check 清單同步回文件，避免規劃與程式現況再次脫節。

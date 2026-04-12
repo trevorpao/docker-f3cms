@@ -13,7 +13,7 @@ Before doing any work, apply these rules:
 2. Treat [document/flow.md](../../document/flow.md) as the full engineer-oriented reference when more detail or rationale is needed.
 3. Treat [copilot-instructions.md](../copilot-instructions.md) as the workspace-level always-on ruleset.
 4. Treat [document/spec/.current-spec.md](../../document/spec/.current-spec.md) as the single source of truth for the current target spec.
-5. If [document/spec/.current-spec.md](../../document/spec/.current-spec.md) is missing, unreadable, or does not point to a valid spec folder, stop immediately and tell the user to run the appropriate `FDD Use ...` command first.
+5. If [document/spec/.current-spec.md](../../document/spec/.current-spec.md) is missing, unreadable, or does not point to a valid spec folder, stop immediately and tell the user to run the appropriate `FDD Focus` command first.
 6. If the task involves F3CMS architecture, terminology, process, or feature continuation, treat the files under [document](../../document) as the primary source of truth instead of making generic framework assumptions.
 7. After reading [document/spec/.current-spec.md](../../document/spec/.current-spec.md), read the resolved target spec's `history.md` first, then use `plan.md` and `check.md` to determine the current stage and expected next step. Do not restart from `idea.md` unless the documents show the earlier stages are incomplete or a premise has been invalidated.
 8. If you inspect runtime validation evidence, prefer the project's existing Docker-based smoke or verification paths over host-only assumptions.

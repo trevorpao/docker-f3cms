@@ -34,6 +34,36 @@
 - 開發中的進度、卡點、下一步、暫時性收斂與中途判斷，都應寫進 `history.md`，不是先寫進 `optimization.md`。
 - 只有當 `check.md` 已確認主要開發與驗收已完成，正式進入 `(Optimization)` 後，才開始撰寫 `optimization.md`。
 
+## Command 與 Stage 對應
+
+FDD 指令是操作入口，不等於 stage 本身。stage 仍以 `idea -> (discuss) -> plan -> (done) -> check -> (Optimization)` 為準；指令的責任是幫工程師或 LLM 在正確時機，用正確方式承接這些 stage。
+
+### `FDD Focus`
+- 用途：切換目前工作的 target spec，建立本輪承接焦點。
+- 對應關係：不是某一個 stage，而是所有 stage 的前置入口。
+- 使用時機：開始承接某個 feature、切換到另一個 spec、或 current spec pointer 失效時。
+
+### `FDD Sprint`
+- 用途：依 current spec 的 `history.md`、`plan.md`、`check.md` 推進本輪最小可交付工作。
+- 對應關係：主要服務 `plan`、`(done)`、`check` 之間的實際推進，也可用於承接仍需收斂的 `(discuss)` 後續工作。
+- 使用時機：要落實本輪工作、補驗證、修正 drift、更新 spec 承接內容時。
+
+### `FDD Review`
+- 用途：檢查 stage 判定、spec 文件一致性、驗收狀態與程式 / 文件是否漂移。
+- 對應關係：不是單一 stage，而是用來校準 `plan`、`(done)`、`check`、`(Optimization)` 前後是否仍一致。
+- 使用時機：懷疑文件漂移、承接點不清楚、想先 review 再決定是否繼續 sprint 時。
+
+### `FDD Retrospective`
+- 用途：在主要功能與驗收完成後，將穩定規則、詞彙與共用知識沉澱到 `optimization.md`、glossary、guides、references 等文件。
+- 對應關係：直接對應 `(Optimization)`。
+- 使用時機：`check.md` 已確認主要實作完成，接下來工作以收尾、整理、升格共用規則與封存前處理為主時。
+
+### 總結
+- `FDD Focus`：先決定現在在做哪個 spec。
+- `FDD Sprint`：推進目前 spec 的最小下一步。
+- `FDD Review`：確認目前 spec 的 stage、文件與現況是否一致。
+- `FDD Retrospective`：在 feature 完成後做 `(Optimization)` 與知識沉澱。
+
 ## Stage Entry / Exit Criteria
 
 FDD 不只定義階段順序，也要定義每一個 stage 何時可以開始、何時才算結束。若 entry / exit criteria 不清楚，實務上很容易出現跳階段、文件先後錯置，或把未收斂的問題帶進下一步。
@@ -60,7 +90,7 @@ FDD 不只定義階段順序，也要定義每一個 stage 何時可以開始、
 
 ### `(Optimization)`
 - Entry：`check.md` 已確認主要實作與驗收完成，剩餘工作主要是規則沉澱、詞彙整理、文件同步與封存前收尾。
-- Exit：穩定規則已回寫到共用文件、`optimization.md` 已完成、`history.md` 已壓縮，且 feature 已具備封存或長期維護所需的最小文件集。
+- Exit：穩定規則已回寫到 `optimization.md`，且需要升格到 glossary / guides / references / sidebar 的內容已由工程師明確判定並處理或列單、`history.md` 已壓縮，且 feature 已具備封存或長期維護所需的最小文件集。
 
 ## Minimum Deliverable Per Round
 
@@ -178,7 +208,7 @@ FDD 需要明確定義 feature 何時算完成，否則很容易長期停在 `ch
 ### 封存前最低條件
 - `optimization.md` 已補上穩定規則與後續優化方向。
 - `history.md` 已完成壓縮整理，能讓下一位讀者快速承接。
-- 應回寫到 glossary / guides / references / sidebar 的內容已處理或已列成清單。
+- 需要升格到 glossary / guides / references / sidebar 的內容，已由工程師明確判定為「處理」、「列清單」或「暫不升格」。
 
 ### 未達條件時
 - 若仍有關鍵 drift、未完成驗收或未收斂 next step，不應宣告 feature 已完成，也不應直接封存。
@@ -427,8 +457,8 @@ F3CMS 的 `check` 不只看功能有沒有動，還要檢查：
 
 常見項目：
 - 將 feature 特有詞彙補進 [glossary.md](glossary.md)
-- 若形成穩定規則，回寫到對應 guides 或 references
-- 若導航需要更新，調整 [_sidebar.md](_sidebar.md)
+- 若形成穩定規則，且工程師判斷具跨 feature 或長期重用價值，再回寫到對應 guides 或 references
+- 若新增或升格了共享文件，且導航需要更新，再調整 [_sidebar.md](_sidebar.md)
 - 在 `optimization.md` 補上未來可能的改善方向
 - 視需要將 `document/spec/<feature>/` 移動到封存區
 - 在封存前，先將 `history.md` 壓縮為可承接與可追蹤的最終摘要版本
@@ -440,7 +470,7 @@ F3CMS 的 `check` 不只看功能有沒有動，還要檢查：
 - 在 `plan` 階段，要求 AI 產出可執行的分階段工作與 checklist，而不是直接寫最終程式。
 - 在 `(done)` 階段，要求 AI 明確說明改的是哪一層，避免跨層混寫。
 - 在 `check` 階段，要求 AI 以 review 心態檢查建模、分層、命名與驗收遺漏。
-- 在 `(Optimization)` 階段，要求 AI 一併指出應同步更新的 glossary、reference、guide 與 sidebar。
+- 在 `(Optimization)` 階段，要求 AI 一併指出哪些內容值得升格到 glossary、reference、guide 或 sidebar，並由工程師決定是否真的要建立或更新共享文件。
 - 在多輪對話中，優先要求 AI 先讀 `history.md`，再決定是否需要回讀其他 spec 文件。
 
 最低執行要求：
@@ -472,11 +502,11 @@ F3CMS 的 `check` 不只看功能有沒有動，還要檢查：
 - 只有在 feature 已正式進入 `(Optimization)` 時，才能執行這個情境。
 - 若目前仍在開發、驗收或承接下一步，應回到 `history.md`、`plan.md`、`check.md` 處理，不應提前填寫 `optimization.md`。
 
-1. 將 feature 的穩定商業規則整理到適合的 guide 或 spec 文件
+1. 將 feature 的穩定商業規則整理到適合的 spec 文件；若工程師判斷已有跨 feature 或長期重用價值，再升格到 guide 或其他共用文件
 2. 將 feature 的特殊詞彙整理進 [glossary.md](glossary.md)
 3. 在 `document/spec/<feature>/optimization.md` 中說明未來可能的改進方向
 4. 視需要將 `document/spec/<feature>/` 移動到封存區
-5. 將 feature 中需要遵循的規格回寫到適合的共用文件，方便後續協作
-6. 更新 [_sidebar.md](_sidebar.md)
+5. 將 feature 中確定需要跨 feature 共用的規格回寫到適合的共用文件，方便後續協作
+6. 若有新增或升格共享文件，再更新 [_sidebar.md](_sidebar.md)
 7. 壓縮並整理 `history.md`
 8. 產生 git commit 所需說明

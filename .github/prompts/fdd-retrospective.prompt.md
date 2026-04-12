@@ -1,7 +1,7 @@
 ---
-name: "FDD Optimize"
+name: "FDD Retrospective"
 description: "Use when finishing a Flow Driven Development feature by syncing stable rules into glossary, guides, references, and optimization artifacts without reopening implementation scope."
-argument-hint: "Describe the feature path and the optimization or documentation sync work"
+argument-hint: "Describe the feature path and the retrospective or documentation sync work"
 agent: "agent"
 ---
 
@@ -13,7 +13,7 @@ Before doing any work, apply these rules:
 2. Treat [document/flow.md](../../document/flow.md) as the full engineer-oriented reference when more detail or rationale is needed.
 3. Treat [copilot-instructions.md](../copilot-instructions.md) as the workspace-level always-on ruleset.
 4. Treat [document/spec/.current-spec.md](../../document/spec/.current-spec.md) as the single source of truth for the current target spec.
-5. If [document/spec/.current-spec.md](../../document/spec/.current-spec.md) is missing, unreadable, or does not point to a valid spec folder, stop immediately and tell the user to run the appropriate `FDD Use ...` command first.
+5. If [document/spec/.current-spec.md](../../document/spec/.current-spec.md) is missing, unreadable, or does not point to a valid spec folder, stop immediately and tell the user to run the appropriate `FDD Focus` command first.
 6. Treat the files under [document](../../document) as the primary source of truth for F3CMS architecture, terminology, process, glossary, guides, and references.
 7. After reading [document/spec/.current-spec.md](../../document/spec/.current-spec.md), read the resolved target spec's `history.md` first, then use `plan.md` and `check.md` to confirm that the feature is actually ready for `(Optimization)`.
 8. Do not reopen feature implementation scope during `(Optimization)` unless the documents show that a prerequisite for completion is still missing.
@@ -37,6 +37,6 @@ Response expectations:
 - Avoid expanding scope back into feature implementation unless a completion prerequisite is demonstrably missing.
 - After finishing, say whether `history.md`, `check.md`, or `optimization.md` should be updated further.
 
-User optimization task:
+User retrospective task:
 
 {{input}}
