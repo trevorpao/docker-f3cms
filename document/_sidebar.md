@@ -9,6 +9,7 @@
   - Design
     - [FDD idea.md Writing Guide](guides/idea_md_writing_guide.md)
     - [FDD idea.md Role Examples](guides/idea_md_role_examples.md)
+    - [FDD Porting Guide](guides/fdd_porting_guide.md)
     - [SA Requirement Breakdown](guides/sa_requirement_breakdown.md)
     - [Data Modeling](guides/data_modeling.md)
     - [Module Design](guides/module_design.md)

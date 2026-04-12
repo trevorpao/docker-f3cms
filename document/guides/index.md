@@ -31,6 +31,7 @@
 - [create_new_module.md](create_new_module.md)
 - [data_modeling.md](data_modeling.md)
 - [data_architecture_checklist.md](data_architecture_checklist.md)
+- [fdd_porting_guide.md](fdd_porting_guide.md)
 - [module_design.md](module_design.md)
 - [feed_guide.md](feed_guide.md)
 - [idea_md_writing_guide.md](idea_md_writing_guide.md)
@@ -54,6 +55,7 @@ Choose the entry path based on the question you are trying to answer.
 If the question is:
 - what F3CMS is and how the system is shaped, start from `overall.md`
 - how to write a high-quality FDD `idea.md`, start from `idea_md_writing_guide.md`
+- how to transplant FDD into another project, start from `fdd_porting_guide.md`
 - how to break requirements into modules, start from `sa_requirement_breakdown.md`
 - how to design schema and table structure, start from `data_modeling.md`
 - how to decide whether a new module is needed, start from `module_design.md`
@@ -141,6 +143,11 @@ This section describes what each document is for and when it should be opened.
 - Practical examples showing how SA, SD, and DBA write the same `idea.md` differently.
 - Use after reading `idea_md_writing_guide.md` when the team needs concrete role-oriented samples.
 - Best for onboarding, review calibration, and LLM prompting examples.
+
+#### [fdd_porting_guide.md](fdd_porting_guide.md)
+- Primary source for moving the FDD workflow into another repository.
+- Use when the team wants to preserve LLM behavior, prompt entry points, and spec continuation rules across projects.
+- Read before copying prompts or workspace instructions into a new codebase.
 
 #### [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
 - Primary source for turning business requirements into entities, module boundaries, and handoff structure.
@@ -257,6 +264,13 @@ This path is for building a usable system model quickly without reading everythi
 8. [create_new_module.md](create_new_module.md) only after the design path above is satisfied
 
 This path is intentionally biased toward stable decision documents instead of historical narrative.
+
+### For FDD Migration
+1. [fdd_porting_guide.md](fdd_porting_guide.md)
+2. [idea_md_writing_guide.md](idea_md_writing_guide.md)
+3. [idea_md_role_examples.md](idea_md_role_examples.md)
+
+This path is for moving the workflow into another project without losing the behavior contract that guides an LLM.
 
 ## Task-Oriented Entry Paths
 
