@@ -159,7 +159,9 @@ Use the following quick map:
 - change Feed when persistence, query shape, language handling, metadata handling, or relation logic changes
 - change Reaction when request/response interaction changes
 - change Outfit when page rendering flow or page composition changes
-- change Kit when shared reusable helper behavior is needed across modules
+- change Kit when module-owned rule or helper behavior should be encapsulated for reuse, including cross-module callers
+
+If the behavior still belongs to one module's business boundary, prefer that module's Kit even when other modules call it. Only move it to helpers or `libs` when it becomes infrastructural or no longer belongs to one module.
 
 If you cannot decide where a change belongs, the problem is usually one of two things:
 - the entity boundary is still unclear

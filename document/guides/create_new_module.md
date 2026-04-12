@@ -92,7 +92,7 @@ Decide what the module actually needs:
 - Feed is required for entity data lifecycle
 - Reaction is required when backend interaction or JSON actions exist
 - Outfit is required when page rendering or frontend routing behavior exists
-- Kit is required when module-local validation or reusable helper rules exist
+- Kit is required when module-owned validation or reusable helper rules exist, including rules that other modules may call through this module boundary
 
 Not every module needs all four files immediately, but the naming model remains the same.
 
@@ -286,13 +286,13 @@ class oDraft extends Outfit
 
 If the module is backend-only or integration-only, Outfit may remain minimal or be omitted until actually needed.
 
-## Step 7: Add Kit Only When Module-Local Rules Exist
+## Step 7: Add Kit When Module-Owned Rules Should Be Encapsulated
 
-Create `kit.php` only when the module has validation rules or reusable helper logic that belongs to the module but not to Feed persistence semantics.
+Create `kit.php` when the module has validation rules or reusable helper logic that belongs to the module but not to Feed persistence semantics. This logic may still be called by other modules when they need this module's rules, and should not be pushed into `libs` only to avoid duplication.
 
 Use Kit for:
 - validation rules
-- reusable module-local helpers
+- reusable module-owned helpers
 - small utilities used by Reaction or Outfit
 
 Do not create Kit just because every layer name exists. Create it when the module actually needs it.
@@ -313,7 +313,7 @@ Before considering the module scaffold complete, verify the following.
 - Feed owns data lifecycle
 - Reaction owns backend interaction
 - Outfit owns rendering flow
-- Kit is used only when module-local rules justify it
+- Kit is used when module-owned rules or utilities justify encapsulation and possible cross-module reuse
 
 ### Review Path
 - run [data_architecture_checklist.md](data_architecture_checklist.md)
@@ -344,7 +344,7 @@ Correct approach:
 Kit should not become a place to hide unclear ownership.
 
 Correct approach:
-- only move logic into Kit when it is truly module-local and reusable
+- move logic into Kit when it is owned by the module's rules and may need reuse, even across modules; move it to `libs` only when it becomes generic infrastructure
 
 ## Related Documents
 - [module_design.md](module_design.md)

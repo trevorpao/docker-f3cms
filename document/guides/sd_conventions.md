@@ -218,19 +218,20 @@ Outfit should not become the main write path for entity data.
 
 ### Kit Responsibilities
 - validation rules
-- lightweight module-local utilities
-- shared logic needed by Reaction or Outfit but not owned by the data model itself
+- lightweight module-owned utilities
+- module-owned logic needed by Reaction or Outfit and, when appropriate, reusable by other modules
 
 Kit should not become a duplicate service layer for the entity.
 
 ### When to Use Helpers or `libs`
 
 Move logic to helpers or shared libs when:
-- it is reused across multiple modules
-- it is not owned by one entity
+- it is reused across multiple modules and is not owned by one module's business rules
+- it is not owned by one entity or one module
 - it is infrastructural rather than entity-specific
 
 Do not move entity-specific logic to generic helpers just because it is long.
+Do not move module-owned rules into `libs` too early just because more than one module needs them. If the logic still belongs to one module's boundary, prefer that module's Kit so `libs` does not become bloated.
 
 ## Rights, Roles, and Menu Integration
 

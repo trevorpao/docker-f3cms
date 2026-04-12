@@ -139,6 +139,7 @@ This is one of the most important review sections in F3CMS.
 
 ### Kit and Shared Utility Questions
 - [ ] Is shared reusable logic placed in Kit or a shared library only when reuse across modules is real?
+- [ ] If the logic still belongs to one module's business boundary, does the PR keep it in that module's Kit even when other modules reuse it, instead of pushing it into `libs` too early?
 - [ ] Has the PR avoided creating one-off helpers that only hide poor layer placement?
 
 ### Reviewer Decision

@@ -59,7 +59,7 @@ This rule exists because the same entity usually needs consistent handling acros
 - a Feed for persistence and query behavior
 - a Reaction for backend JSON actions
 - an Outfit for frontend rendering or page flow
-- a Kit for validation rules and module-specific utilities
+- a Kit for validation rules and module-owned utilities that may also be reused by other modules
 
 If those responsibilities are spread across multiple unrelated folders, the entity boundary becomes unclear and the codebase starts to drift toward duplication and special-case logic.
 
@@ -82,6 +82,8 @@ Strong indicators include:
 - it needs separate backend actions
 - it has ownership, permissions, or audit behavior distinct from another entity
 - it is likely to be listed, queried, or managed directly
+
+If the requirement introduces new table-backed business logic, that logic must live under the owning module rather than being placed in `libs`. Shared libraries are for cross-module infrastructure or truly generic helpers, not for owning entity persistence, workflow state, or audit behavior.
 
 Examples of entities that clearly justify modules:
 - Post
@@ -191,16 +193,21 @@ Outfit should not become:
 
 ### Kit
 
-Kit is the module-local rule and utility layer.
+Kit is the module-owned rule and utility layer.
 
 Kit is responsible for:
 - validation rules
-- lightweight helper logic specific to the module
-- reusable utility behavior needed by Reaction or Outfit
+- lightweight helper logic that belongs to the module
+- reusable utility behavior that encapsulates the module's rules and may be called by that module's Reaction or Outfit or by other modules
 
 Kit should not become:
 - a second Feed
 - an arbitrary dumping ground for unrelated functions
+- a replacement for `libs` infrastructure
+
+Practical rule:
+- if logic is owned by one module's business rules, keep it in that module's Kit even when other modules need to call it
+- if logic is infrastructural, generic, or not owned by one module, move it to helpers or `libs`
 
 ## WorkflowEngine Integration Pattern
 
@@ -213,7 +220,7 @@ When a module needs workflow judgment, WorkflowEngine should be treated as a sha
 - Feed persists business rows and module-owned log rows, but does not become the place where workflow rules are invented
 - Reaction handles action requests and coordinates transaction boundaries
 - Outfit may ask WorkflowEngine for display-facing projection such as current stage or available actions
-- Kit may wrap module-local workflow helpers, but should not replace WorkflowEngine itself
+- Kit may wrap module-owned workflow helpers for reuse by other modules, but should not replace WorkflowEngine itself
 
 ### What Not To Do
 
@@ -256,7 +263,7 @@ To keep modules coherent, each layer should communicate in predictable ways.
 - Outfit should remain display-oriented and should not invent write-side workflow persistence rules.
 
 ### Reaction to Kit
-- Reaction uses Kit to obtain rules or module-specific helpers.
+- Reaction uses Kit to obtain rules or module-owned helpers.
 - Kit supports Reaction, but does not replace Feed.
 
 ### Feed to Other Entities
