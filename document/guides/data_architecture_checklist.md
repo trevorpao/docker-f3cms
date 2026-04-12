@@ -45,6 +45,14 @@ The expected behavior is simple:
 - if the answer is no, record the correction before implementation continues
 - do not treat unresolved checklist failures as minor style issues when they affect entity boundaries, table placement, or Feed lifecycle integrity
 
+## SQL Delivery Check
+
+Use this before closing any schema change or DBA handoff.
+
+- [ ] If the change includes schema migration SQL or DBA-executed full-table SQL, has it been added to `document/sql/YYMMDD.sql` for today?
+- [ ] If today's SQL file did not already exist, was it created before delivery?
+- [ ] Is `document/sql/init.sql` left as baseline bootstrap rather than reused for today's ad hoc change script?
+
 ## Review Flow
 
 The recommended order is:

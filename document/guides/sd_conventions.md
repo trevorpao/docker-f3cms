@@ -28,6 +28,18 @@
 - [create_new_module.md](create_new_module.md)
 - [document/sql/init.sql](../sql/init.sql)
 
+## SQL Delivery Convention
+
+When a change requires database schema updates or full-table SQL that must be executed by a DBA, the SQL must be recorded under `document/sql/` in the file for the current date.
+
+Rules:
+- use the filename format `YYMMDD.sql`, for example `260412.sql`
+- if the current date's SQL file does not exist yet, create it before adding the new SQL
+- append same-day schema and DBA-executed table-wide SQL to that day's file instead of scattering them across ad hoc files
+- keep `document/sql/init.sql` as environment baseline bootstrap, not as the place for ad hoc daily delivery SQL
+
+This convention exists so schema delivery and DBA handoff have a predictable daily audit trail.
+
 ## Core Thesis
 - SD work in F3CMS should optimize for consistency, not novelty.
 - A correct solution is one that preserves entity boundaries, naming stability, schema clarity, and layer responsibility.
