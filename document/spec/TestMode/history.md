@@ -1,3 +1,10 @@
+### 第 30 輪討論結果
+1. 本輪承接 TestMode `(Optimization)` 的 closeout 清理，處理最後仍停留在 `www/f3cms/scripts/` 底下的非 smoke 測試資產：`workflow_fixtures/psc_chain.json` 與 `workflow_fixtures/sjse_edge.json`。
+2. 本輪確認這兩個檔案不是可直接刪除的殘留垃圾，因為 `WorkflowEngine::loadDefinition()` 仍會用它們作為 `PSC_CHAIN` 與 `SJSE_EDGE` 的 file-based definition source；真正的 drift 是它們還留在 `scripts/`，與 TestMode 已固定的 `www/tests/fixtures/` 契約不一致。
+3. 因此本輪把兩個 fixture 正式搬到 `www/tests/fixtures/workflow_engine/`，並同步修改 `www/f3cms/libs/WorkflowEngine.php` 的讀取路徑，讓 WorkflowEngine 的 file-based fixture source 也完全回到 `www/tests/`。
+4. 舊的 `www/f3cms/scripts/workflow_fixtures/` 內容已在本輪刪除，代表 `www/f3cms/scripts/` 不再保留 smoke wrapper 之外的 workflow fixture 資產；若後續要把整個 `scripts/` 清空，這一塊已不再構成阻塞。
+5. 本輪沒有改變 WorkflowEngine definition smoke 的功能 contract，只是把 fixture source 移到 TestMode 已定義的 canonical 位置；接下來只需重新驗證相關 WorkflowEngine smoke 與 loader 仍正常。
+
 ### 第 29 輪討論結果
 1. 本輪承接第 28 輪留下的 `(Optimization)` 承接點，已將 TestMode 第一版的穩定規則正式提升為共享 guide：新增 `document/guides/testmode_development_guide.md`，讓未來的 LLM 與工程師都有單一操作入口，而不是只從 spec 內部文件反推規則。
 2. 本輪沒有發現新的程式 drift；既有 canonical smoke、Docker 驗證口徑與 wrapper retirement 狀態都維持穩定，因此本輪只做文件沉澱與導覽同步，不重開任何功能或驗證範圍。

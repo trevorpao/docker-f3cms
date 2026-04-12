@@ -3,6 +3,7 @@
 ## 穩定規則摘要
 
 - TestMode 第一版的 smoke source of truth 已固定在 `www/tests/smoke/<domain>/*.php`；legacy `www/f3cms/scripts/*smoke*.php` wrapper 已在收尾輪全部退休，不再保留雙入口。
+- WorkflowEngine 的 file-based definition fixtures 也已固定在 `www/tests/fixtures/workflow_engine/*.json`；`www/f3cms/scripts/` 不再承接 workflow fixture source。
 - smoke suite 的穩定責任鏈為：suite 本體放在 `www/tests/smoke/`、共用 runner contract 放在 `www/tests/bootstrap/`、F3CMS runtime 接線放在 `www/tests/adapters/f3cms/`。
 - canonical naming 的穩定規則是使用 domain / 子系統資料夾與契約導向檔名，例如 `workflow_engine/definition.php`、`workflow_engine/instance_api.php`、`event_rule_engine/basic_or_rule.php`；不得再回到扁平化 `*_smoke.php` 命名作為主路徑。
 - Docker 是 TestMode 的驗證基準；主命令口徑固定為 `docker compose exec -T php-fpm php /var/www/tests/smoke/<path>`，不再以 host PHP 或 retired wrapper 路徑作為真實結果來源。

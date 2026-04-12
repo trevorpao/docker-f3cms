@@ -1,0 +1,179 @@
+{
+  "workflow": {
+    "code": "PSC_CHAIN",
+    "title": "PSC 線性審查流程",
+    "version": 1,
+    "status": "active",
+    "sourceType": "json",
+    "entryStageCode": "LOCK",
+    "terminalStateCodes": [
+      "Rejected"
+    ],
+    "roleConstants": {
+      "ROLE_APPLICANT": "申請人",
+      "ROLE_DEPT_ADMIN": "系辦",
+      "ROLE_DEPT_CHAIR": "系主任",
+      "ROLE_COURSE_ADMIN": "課程組"
+    },
+    "stages": [
+      {
+        "stageCode": "LOCK",
+        "stageTitle": "鎖定",
+        "stageType": "single",
+        "allowedRoleConstants": [
+          "ROLE_APPLICANT"
+        ],
+        "meta": {
+          "stateCode": "Draft"
+        }
+      },
+      {
+        "stageCode": "INDIVIDUAL_REVIEW",
+        "stageTitle": "個別課程審查",
+        "stageType": "any_of",
+        "allowedRoleConstants": [
+          "ROLE_DEPT_ADMIN"
+        ],
+        "meta": {
+          "stateCode": "InIndividualReview"
+        }
+      },
+      {
+        "stageCode": "COMPREHENSIVE_REVIEW",
+        "stageTitle": "綜合科目審查",
+        "stageType": "any_of",
+        "allowedRoleConstants": [
+          "ROLE_DEPT_ADMIN"
+        ],
+        "meta": {
+          "stateCode": "InComprehensiveReview"
+        }
+      },
+      {
+        "stageCode": "CHAIR_REVIEW",
+        "stageTitle": "系主任審查",
+        "stageType": "single",
+        "allowedRoleConstants": [
+          "ROLE_DEPT_CHAIR"
+        ],
+        "meta": {
+          "stateCode": "InChairReview"
+        }
+      },
+      {
+        "stageCode": "COURSE_REVIEW",
+        "stageTitle": "課程組審查",
+        "stageType": "any_of",
+        "allowedRoleConstants": [
+          "ROLE_COURSE_ADMIN"
+        ],
+        "meta": {
+          "stateCode": "InCourseReview"
+        }
+      },
+      {
+        "stageCode": "CERTIFICATE_PICKUP",
+        "stageTitle": "領證",
+        "stageType": "single",
+        "allowedRoleConstants": [
+          "ROLE_APPLICANT"
+        ],
+        "meta": {
+          "stateCode": "CertificateReady"
+        }
+      },
+      {
+        "stageCode": "REJECTED",
+        "stageTitle": "未通過",
+        "stageType": "terminal",
+        "allowedRoleConstants": [],
+        "meta": {
+          "stateCode": "Rejected"
+        }
+      }
+    ],
+    "transitions": [
+      {
+        "transitionCode": "PSC_SUBMIT",
+        "fromStageCode": "LOCK",
+        "actionCode": "SUBMIT",
+        "actionLabel": "送出",
+        "transitionKind": "forward",
+        "toStageCode": "INDIVIDUAL_REVIEW",
+        "toStateCode": "InIndividualReview"
+      },
+      {
+        "transitionCode": "PSC_INDIVIDUAL_PASS",
+        "fromStageCode": "INDIVIDUAL_REVIEW",
+        "actionCode": "INDIVIDUAL_PASS",
+        "actionLabel": "個別審查通過",
+        "transitionKind": "forward",
+        "toStageCode": "COMPREHENSIVE_REVIEW",
+        "toStateCode": "InComprehensiveReview"
+      },
+      {
+        "transitionCode": "PSC_INDIVIDUAL_REJECT",
+        "fromStageCode": "INDIVIDUAL_REVIEW",
+        "actionCode": "INDIVIDUAL_REJECT",
+        "actionLabel": "個別審查退件",
+        "transitionKind": "terminate",
+        "toStageCode": "REJECTED",
+        "toStateCode": "Rejected"
+      },
+      {
+        "transitionCode": "PSC_COMPREHENSIVE_PASS",
+        "fromStageCode": "COMPREHENSIVE_REVIEW",
+        "actionCode": "COMPREHENSIVE_PASS",
+        "actionLabel": "綜合審查通過",
+        "transitionKind": "forward",
+        "toStageCode": "CHAIR_REVIEW",
+        "toStateCode": "InChairReview"
+      },
+      {
+        "transitionCode": "PSC_COMPREHENSIVE_REJECT",
+        "fromStageCode": "COMPREHENSIVE_REVIEW",
+        "actionCode": "COMPREHENSIVE_REJECT",
+        "actionLabel": "綜合審查退件",
+        "transitionKind": "terminate",
+        "toStageCode": "REJECTED",
+        "toStateCode": "Rejected"
+      },
+      {
+        "transitionCode": "PSC_CHAIR_PASS",
+        "fromStageCode": "CHAIR_REVIEW",
+        "actionCode": "CHAIR_PASS",
+        "actionLabel": "系主任通過",
+        "transitionKind": "forward",
+        "toStageCode": "COURSE_REVIEW",
+        "toStateCode": "InCourseReview"
+      },
+      {
+        "transitionCode": "PSC_CHAIR_REJECT",
+        "fromStageCode": "CHAIR_REVIEW",
+        "actionCode": "CHAIR_REJECT",
+        "actionLabel": "系主任退件",
+        "transitionKind": "terminate",
+        "toStageCode": "REJECTED",
+        "toStateCode": "Rejected"
+      },
+      {
+        "transitionCode": "PSC_COURSE_PASS",
+        "fromStageCode": "COURSE_REVIEW",
+        "actionCode": "COURSE_PASS",
+        "actionLabel": "課程組通過",
+        "transitionKind": "forward",
+        "toStageCode": "CERTIFICATE_PICKUP",
+        "toStateCode": "CertificateReady"
+      },
+      {
+        "transitionCode": "PSC_COURSE_REJECT",
+        "fromStageCode": "COURSE_REVIEW",
+        "actionCode": "COURSE_REJECT",
+        "actionLabel": "課程組退件",
+        "transitionKind": "terminate",
+        "toStageCode": "REJECTED",
+        "toStateCode": "Rejected"
+      }
+    ]
+  }
+}

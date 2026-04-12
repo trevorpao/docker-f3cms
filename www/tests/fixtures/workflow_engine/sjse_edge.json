@@ -1,0 +1,180 @@
+{
+  "workflow": {
+    "code": "SJSE_EDGE",
+    "title": "SJSE 邊界流程",
+    "version": 1,
+    "status": "active",
+    "sourceType": "json",
+    "entryStageCode": "DRAFT",
+    "terminalStateCodes": [
+      "Withdrawn"
+    ],
+    "roleConstants": {
+      "ROLE_AUTHOR": "投稿者",
+      "ROLE_EDITOR": "編輯",
+      "ROLE_REVIEWER": "審稿人"
+    },
+    "stages": [
+      {
+        "stageCode": "DRAFT",
+        "stageTitle": "草稿",
+        "stageType": "single",
+        "allowedRoleConstants": [
+          "ROLE_AUTHOR"
+        ],
+        "meta": {
+          "stateCode": "Draft"
+        }
+      },
+      {
+        "stageCode": "FORMAT_REVIEW",
+        "stageTitle": "格式審查",
+        "stageType": "single",
+        "allowedRoleConstants": [
+          "ROLE_EDITOR"
+        ],
+        "meta": {
+          "stateCode": "Submitted"
+        }
+      },
+      {
+        "stageCode": "FIRST_REVIEW",
+        "stageTitle": "初審評分",
+        "stageType": "parallel",
+        "allowedRoleConstants": [
+          "ROLE_REVIEWER"
+        ],
+        "joinPolicy": {
+          "type": "all_of",
+          "requiredBranches": [
+            "REVIEWER_A",
+            "REVIEWER_B"
+          ],
+          "requiredCount": 2,
+          "successRule": "all_pass"
+        },
+        "meta": {
+          "stateCode": "InFirstReview"
+        }
+      },
+      {
+        "stageCode": "EXEC_DECISION",
+        "stageTitle": "副總編輯核示",
+        "stageType": "single",
+        "allowedRoleConstants": [
+          "ROLE_EDITOR"
+        ],
+        "meta": {
+          "stateCode": "FirstPassed"
+        }
+      },
+      {
+        "stageCode": "REVISION_RESPONSE",
+        "stageTitle": "作者修正",
+        "stageType": "single",
+        "allowedRoleConstants": [
+          "ROLE_AUTHOR"
+        ],
+        "meta": {
+          "stateCode": "RevisionRequested"
+        }
+      },
+      {
+        "stageCode": "ROUTE_SELECTION",
+        "stageTitle": "選擇步驟",
+        "stageType": "branch",
+        "allowedRoleConstants": [
+          "ROLE_EDITOR"
+        ],
+        "meta": {
+          "stateCode": "RevisionSubmitted"
+        }
+      },
+      {
+        "stageCode": "THIRD_REVIEW",
+        "stageTitle": "三審評分",
+        "stageType": "single",
+        "allowedRoleConstants": [
+          "ROLE_REVIEWER"
+        ],
+        "meta": {
+          "stateCode": "InThirdReview"
+        }
+      },
+      {
+        "stageCode": "WITHDRAWN",
+        "stageTitle": "放棄",
+        "stageType": "terminal",
+        "allowedRoleConstants": [],
+        "meta": {
+          "stateCode": "Withdrawn"
+        }
+      }
+    ],
+    "transitions": [
+      {
+        "transitionCode": "SJSE_SUBMIT",
+        "fromStageCode": "DRAFT",
+        "actionCode": "SUBMIT",
+        "actionLabel": "送審",
+        "transitionKind": "forward",
+        "toStageCode": "FORMAT_REVIEW",
+        "toStateCode": "Submitted"
+      },
+      {
+        "transitionCode": "SJSE_FORMAT_PASS",
+        "fromStageCode": "FORMAT_REVIEW",
+        "actionCode": "FORMAT_PASS",
+        "actionLabel": "格式通過",
+        "transitionKind": "forward",
+        "toStageCode": "FIRST_REVIEW",
+        "toStateCode": "InFirstReview"
+      },
+      {
+        "transitionCode": "SJSE_FIRST_PASS",
+        "fromStageCode": "FIRST_REVIEW",
+        "actionCode": "FIRST_PASS",
+        "actionLabel": "初審通過",
+        "transitionKind": "forward",
+        "toStageCode": "EXEC_DECISION",
+        "toStateCode": "FirstPassed"
+      },
+      {
+        "transitionCode": "SJSE_FIRST_REVISE",
+        "fromStageCode": "FIRST_REVIEW",
+        "actionCode": "FIRST_REVISE",
+        "actionLabel": "退回修正",
+        "transitionKind": "rollback",
+        "toStageCode": "REVISION_RESPONSE",
+        "toStateCode": "RevisionRequested"
+      },
+      {
+        "transitionCode": "SJSE_REVISION_SUBMIT",
+        "fromStageCode": "REVISION_RESPONSE",
+        "actionCode": "REVISION_SUBMIT",
+        "actionLabel": "送回編輯",
+        "transitionKind": "forward",
+        "toStageCode": "ROUTE_SELECTION",
+        "toStateCode": "RevisionSubmitted"
+      },
+      {
+        "transitionCode": "SJSE_FIRST_TO_THIRD",
+        "fromStageCode": "ROUTE_SELECTION",
+        "actionCode": "ROUTE_TO_THIRD",
+        "actionLabel": "送三審",
+        "transitionKind": "branch",
+        "toStageCode": "THIRD_REVIEW",
+        "toStateCode": "InThirdReview"
+      },
+      {
+        "transitionCode": "SJSE_WITHDRAW",
+        "fromStageCode": "REVISION_RESPONSE",
+        "actionCode": "WITHDRAW",
+        "actionLabel": "放棄投稿",
+        "transitionKind": "terminate",
+        "toStageCode": "WITHDRAWN",
+        "toStateCode": "Withdrawn"
+      }
+    ]
+  }
+}
