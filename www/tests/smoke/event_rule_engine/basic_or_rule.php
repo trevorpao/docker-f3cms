@@ -14,6 +14,7 @@ tests_smoke_run(function () {
         'watched_video_codes' => ['vid_001'],
         'exam_scores' => ['default' => 85],
         'heraldry_codes' => [],
+        'member_seen_targets' => [],
         'account_balance' => 100,
         'account_status' => 'ACTIVE',
     ])->toArray();
@@ -23,6 +24,7 @@ tests_smoke_run(function () {
         'watched_video_codes' => [],
         'exam_scores' => ['default' => 60],
         'heraldry_codes' => [],
+        'member_seen_targets' => [],
         'account_balance' => 0,
         'account_status' => 'ACTIVE',
     ])->toArray();
@@ -36,13 +38,12 @@ tests_smoke_run(function () {
         'watched_video_codes' => [],
         'exam_scores' => ['default' => 0],
         'heraldry_codes' => [],
+        'member_seen_targets' => [],
         'account_balance' => 0,
         'account_status' => 'ACTIVE',
     ])->toArray();
 
-    $partialRegistry = new \F3CMS\EventRule\EvaluatorRegistry();
-    $partialRegistry->register('WATCHED_VIDEO', new \F3CMS\EventRule\Evaluator\WatchedVideoEvaluator());
-    $partialRegistry->register('EXAM_SCORE', new \F3CMS\EventRule\Evaluator\ExamScoreEvaluator());
+    $partialRegistry = \F3CMS\EventRuleEngine::createRegistryForTypes(['WATCHED_VIDEO', 'EXAM_SCORE']);
     $missingEvaluatorEngine = new \F3CMS\EventRuleEngine($payload, [
         'registry' => $partialRegistry,
     ]);
@@ -51,6 +52,7 @@ tests_smoke_run(function () {
         'watched_video_codes' => [],
         'exam_scores' => ['default' => 90],
         'heraldry_codes' => ['badge_novice'],
+        'member_seen_targets' => [],
         'account_balance' => 0,
         'account_status' => 'ACTIVE',
     ])->toArray();

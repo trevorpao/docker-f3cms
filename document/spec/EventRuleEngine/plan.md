@@ -16,17 +16,41 @@
 
 ## Current Stage Assessment
 
-目前 feature 已完成 Stage 1 到 Stage 3 的規劃收斂：
+本 spec 在本輪出現明確方向漂移：目前 repo 內的 prototype 仍以 `WATCHED_VIDEO` / `EXAM_SCORE` / `HAS_BADGE` 為主，且 `Member` preload 對 `watched_video_codes` / `exam_scores` 仍是暫時 bridge 思維；但當前已確認的第一個 production scenario 已改為 `Member::Register -> duty 建 task -> rPress seen -> fMember 寫 member_seen -> task done + 100 分`。這代表目前 code 與舊 planning baseline 只能算第一版通用骨架；其中 generic AST 範例仍需保留作為第二個測試標準，但新的 concrete scenario 需要額外補齊 duty contract 與 seen integration，因此本 spec 的承接點需從原本的 `check` 回退到 `plan`，先同步 payload contract、資料落點與 integration 邊界，再進下一輪實作。
+
+目前可作為承接基線的穩定事實如下：
 - Stage 1 已確立 DSL contract、rule types、資料邊界與 validator 基準
 - Stage 2 已確立 MariaDB 相容的 schema / index / query baseline
 - Stage 3 已確立 engine 執行骨架、registry、context contract 與錯誤回傳策略
 - 第一版 validator / parser / registry / traversal 骨架已完成實作，並已有 Docker smoke 可驗證最小判斷路徑
 
 因此目前承接點為：
-- feature 已從純 `plan` 推進到 `(done)` 後可進入 `check` 的承接點
-- 但目前實作位置出現新的 architectural drift：現有 `www/f3cms/libs` 內骨架超出 F3CMS 對 `libs` 的責任邊界；既然需求牽涉實體資料表，後續主體必須回到 module，只保留最小 JSON parser 在 `libs`
+- feature 需先由舊的 `check` 承接點回退到 `plan`，把新的 concrete scenario 正式寫入 spec
+- shared pure engine 目前維持在 `www/f3cms/libs/EventRuleEngine.php`，並比照 WorkflowEngine 承接 parser、validator、registry、traversal 與 pure evaluator runtime
+- `duty`、`task`、`member`、`press`、`manaccount` 等 table-backed payload source / context preload / 狀態寫回 仍必須回到各自 owning module，而不是收斂成單一 `EventRuleEngine` module
+- 目前這個 repo 與 Docker live `target_db` 都已具備 Step 3 前的最小 schema / module baseline，包含 `tbl_member_seen`；`Member`、`Duty`、`Task`、`Manaccount` Feed 已存在，後續可直接承接 Step 3 runtime implementation
+- `Duty` module 已建立第一條真實 payload source path：`kDuty::createRuleEngine()` 可由 `tbl_duty.claim` / `factor` 載入 payload 並建立 shared engine
+- `Member` module 已建立第一條 player context preload contract：`kMember::preloadEventRuleContext()` 可由 `Member`、`tbl_member_heraldry` / `tbl_heraldry`、`Manaccount` 組出 context payload，並保留 `watched_video_codes` / `exam_scores` 的 override 注入口
+- `Duty` module 已建立第一個上層 evaluation helper：`kDuty::evaluateForMember()` 可把 `Duty` payload source 與 `Member` context preload 串成單一 evaluate 入口
+- concrete scenario 的最小 runtime path 已落地：`Member::Register` trigger、`member_seen` truth source、duty 內 task contract 回讀、task done 與點數 reward transaction 均已有 module-owned helper 與 Docker smoke 驗證
 - 目前尚未進入 `(Optimization)`，因為仍有 integration 與驗收缺口待盤點
 - 本文件目前的角色是維持 EventRuleEngine 第一版骨架與後續收斂順序的正式基線
+
+## Concrete Scenario Reset
+
+本輪已確認第一個 production scenario 與其邊界如下：
+- duty claim payload 負責表達 `Member::Register` trigger 與 task 建立模板
+- duty 內的 `task_template` 負責表達 `factor` 與 `reward`，後續由 task 透過 `duty_id` 回讀 contract 決定是否 done
+- `rPress` 可作為文章頁 80% 事件入口，但真正寫入 `member_seen` 的動作必須落在 `fMember`
+- `member_seen` 是 member-owned truth，使用 `target + row_id` 區分文章、影片與其他內容，一旦第一次達標即永久成立
+- 第一個 concrete rule type 應為 `MEMBER_SEEN_TARGET`，而不是把 `press_id = 103` 硬寫在程式裡
+- `WATCHED_VIDEO` / `EXAM_SCORE` / `HAS_BADGE` 的 generic AST 仍保留為第二個測試標準，用來驗證 shared engine 沒有因 concrete scenario 而退化
+- task done 與 100 點 reward 必須走同一個 transaction，不能分裂為兩條 side effect
+
+本輪確認的 concrete scenario 測試順序如下：
+1. 先完成 duty definition 的建立，確保 `claim`、`task_template`、`factor`、`reward` contract 已存在
+2. 再觸發 `Member::Register`，驗證系統會依該 duty 建立對應 task
+3. 最後在 `member_seen` 成立後，驗證 task 狀態異動為 `Done`，且 100 點 reward 與狀態更新走同一個 transaction
 
 ## Stage Plan
 
@@ -226,6 +250,7 @@ leaf node 最小欄位：
 `tbl_task`：
 - 承接會員對 duty 的當前任務狀態
 - 第一版先假設同一 `member_id` 對同一 `duty_id` 只有一筆當前任務，不處理 repeatable 任務週期
+- task runtime row 維持輕量化，不額外複製 `factor` / `reward` JSON；需要判斷是否 done 時，應透過 `duty_id` 回讀 `tbl_duty` 的 contract
 
 建議最小欄位：
 - `id`
@@ -242,6 +267,28 @@ leaf node 最小欄位：
 - `UNIQUE KEY uniq_duty_member (duty_id, member_id)`
 - `KEY idx_member_status (member_id, status)`
 - `KEY idx_duty_status (duty_id, status)`
+
+`tbl_member_seen`：
+- 作為 member-owned first-hit truth table，承接文章、影片等內容的首次達標紀錄
+- 以 `member_id + target + row_id` 做唯一鍵，語意是「第一次達標就永遠成立」
+- first-hit truth 的成立時間直接使用後端 insert 當下的 `insert_ts`，不另外拆 `first_seen_ts`
+- 不保留 `threshold`，因為 first-hit truth 一旦成立，後續不再區分 70% seen 或 80% seen 這類商業邏輯版本
+- `target` 與 `source` 只保留最小識別碼用途，長度收斂為 32
+
+建議最小欄位：
+- `id`
+- `member_id`
+- `target`
+- `row_id`
+- `source`
+- `insert_ts`
+- `insert_user`
+
+建議最小索引：
+- `PRIMARY KEY (id)`
+- `UNIQUE KEY uniq_member_target_row (member_id, target, row_id)`
+- `KEY idx_target_row_member (target, row_id, member_id)`
+- `KEY idx_member_insert_ts (member_id, insert_ts)`
 
 `tbl_task_log`：
 - 採 module-owned log，使用 `parent_id` 指向 `tbl_task.id`
@@ -332,6 +379,12 @@ leaf node 最小欄位：
 玩家條件查詢：
 - 依 `member_id` 取持有 heraldry 清單，供 `HAS_BADGE` evaluator 使用
 - 依 `member_id` 取當前帳戶餘額，供點數條件或獎勵核發使用
+- 依 `member_id + target + row_id` 查 `tbl_member_seen` 是否已有 first-hit truth，供 `MEMBER_SEEN_TARGET` evaluator 使用
+
+Concrete scenario 查詢：
+- Step 1 建立 duty definition 時，寫入 `tbl_duty.claim`，其中包含 `Member::Register` trigger 與 `task_template`
+- Step 2 建立 task 時，`tbl_task` 只寫 `duty_id`、`member_id`、`status` 等 runtime state，不把 contract JSON 複製進 task row
+- Step 3 判斷 task done 時，以上層流程透過 `tbl_task.duty_id -> tbl_duty.id` 回讀 duty contract，再配合 `tbl_member_seen` truth 做判定
 
 帳戶稽核查詢：
 - 依 `parent_id` 讀單一 manaccount 的餘額異動歷程
@@ -510,6 +563,18 @@ registry 規則：
 
 比照現有 WorkflowEngine 與 Press reaction 的責任切分，EventRuleEngine 應維持以下邊界：
 - 只要牽涉 `tbl_duty`、`tbl_task`、`tbl_task_log`、`tbl_member_heraldry`、`tbl_manaccount`、`tbl_manaccount_log` 等實體表，就必須由 module / reaction / service 承接，而不是放在 `libs`
+- concrete scenario 新增的 `tbl_member_seen` 也遵守同一規則：table-backed write path 與 query path 由 owning module 承接，不放在 `libs`
+
+##### G. Concrete Scenario Schema / Query Baseline
+
+`Member::Register -> task create -> member_seen -> task done` 這條路徑，第一版正式基線如下：
+- duty definition 的 contract 仍落在 `tbl_duty.claim`，其中 `task_template` 內含 `factor` 與 `reward`
+- task runtime state 只落在 `tbl_task` / `tbl_task_log`，不新增 task JSON payload 欄位
+- `rPress` seen endpoint 只做 request 驗證、press existence / status 檢查與事件協調，不直接寫 `tbl_member_seen`
+- 實際寫入 `tbl_member_seen` 的動作由 `fMember` 或等價的 member-owning service 執行，並保證同 `(member_id, target, row_id)` 只留下第一次達標紀錄
+- first-hit 成立時間直接以後端 insert 當下的 `insert_ts` 表示，不額外拆出第二個時間欄位
+- `MEMBER_SEEN_TARGET` evaluator 不直接查 press log；它只吃 preload 後的 member truth，或由上層 preload 查 `tbl_member_seen` 後再交給 engine
+- task done 判斷時，上層需能以 `tbl_task.duty_id` 回讀 `tbl_duty.claim` 中的 `task_template`，再依 contract 決定是否狀態轉移與發放 reward
 - module / reaction 負責載入 duty、建立 `PlayerContext`、決定要驗證 `claim` 或 `factor`
 - RuleEngine 負責純判斷
 - task / account 狀態寫回與 log 寫入由 module service 或 reaction 負責
@@ -619,6 +684,11 @@ module / reaction 與 engine 的整合至少需驗證以下責任邊界：
 
 這個順序的目的，是讓 fail-closed 與 contract drift 先被固定，不要等到 module integration 後才發現核心判斷規則仍在變動。
 
+針對本輪 concrete scenario，進入 `(done)` 時的最小測試順序應固定為：
+1. 建立 duty definition
+2. 觸發 `Member::Register` 並驗證 task 被建立
+3. 寫入 `member_seen` 並驗證 task 轉為 `Done`，且 reward transaction 同步完成
+
 ## Current Next Step
 
-下一步應承接 `check`，先盤點目前第一版骨架已完成與未完成項，特別是把 parser 以外的 table-backed 責任從 `libs` 收斂回 module、再處理 module integration adapter、payload source 與更多 rule / fixture 驗證是否要進入下一輪實作。
+本輪已完成 Step 3 的最小 runtime implementation 與 Docker 驗證：`member_seen_task_done_reward.php` 已確認第一次 seen 會建立 `tbl_member_seen` truth、將 task 轉為 `Done`、同步發放 100 點 reward，第二次 seen 則維持 idempotent，不重複發放；同時 generic baseline smoke 仍維持通過。下一步應回到 `check` / review 視角，盤點是否還要把這條 helper 基線再往真實 `rPress -> fMember` reaction path 收斂，或正式進入 `(Optimization)` 前的收尾檢查。

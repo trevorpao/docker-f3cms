@@ -1,0 +1,23 @@
+{
+  "trigger": "Member::Register",
+  "task_template": {
+    "slug": "press-103-seen-reward",
+    "title": "看過文章 103 可得 100 分",
+    "factor": {
+      "operator": "AND",
+      "rules": [
+        {
+          "type": "MEMBER_SEEN_TARGET",
+          "target": "Press",
+          "row_id": 103,
+          "threshold": 80
+        }
+      ]
+    },
+    "reward": {
+      "type": "POINT",
+      "amount": 100,
+      "action_code": "TASK_DONE_REWARD"
+    }
+  }
+}
