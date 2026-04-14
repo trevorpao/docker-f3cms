@@ -29,6 +29,7 @@
 - SA should emphasize business problem, scope, actors, and outcome.
 - SD should emphasize structure, ownership, boundaries, and integration.
 - DBA should emphasize data lifecycle, retention, traceability, and query risk.
+- The same rule still applies: examples should not be appendix-only. A strong `idea.md` should usually show at least one mainline scenario and one boundary scenario so the feature truth is grounded before planning starts.
 
 ## Shared Scenario
 
@@ -41,6 +42,10 @@ The examples below all use the same feature request:
 - The first version must support backend operations only.
 
 The three examples are not three different features. They are three role-oriented ways to write the same `idea.md` foundation.
+
+For alignment with the main writing guide, each example below is intentionally written with:
+- one mainline scenario that shows the intended first-version behavior
+- one boundary scenario that marks an important edge, exclusion, or future-extension line
 
 ## Example 1: SA-Oriented idea.md
 
@@ -95,10 +100,8 @@ The three examples are not three different features. They are three role-oriente
 - 若未來加入會簽，是否會影響第一版狀態模型，仍需在 discuss 階段確認。
 
 ## Example Scenarios
-- staff 將文件由 `Draft` 送到 `PendingReview`。
-- reviewer 將文件由 `PendingReview` 退回到 `Returned`。
-- staff 修改後再次送審。
-- reviewer 核准文件，使文件進入 `Approved`。
+- 主線 scenario：staff 將文件由 `Draft` 送到 `PendingReview`，reviewer 核准後文件進入 `Approved`，且 staff 與 reviewer 的操作時間都可被追蹤。
+- 邊界 scenario：reviewer 將文件由 `PendingReview` 退回到 `Returned`，staff 修改後可再次送審；但第一版仍不處理多位 reviewer 平行審核。
 ```
 
 ### Why This Works For SA
@@ -167,9 +170,8 @@ The three examples are not three different features. They are three role-oriente
 - 若未來要支援多層審核，第一版的狀態模型是否足夠延展仍需確認。
 
 ## Example Scenarios
-- editor 送審後，系統只允許 reviewer 進一步核准、退回或拒絕。
-- 若 reviewer 退回，document current status 與 audit log 都應同步可查。
-- 若未來引入第二層 reviewer，需先確認現有狀態模型能否承接。
+- 主線 scenario：editor 送審後，系統只允許 reviewer 透過單一 coordination path 核准、退回或拒絕，且 document current status 與 audit log 同步可查。
+- 邊界 scenario：若未來引入第二層 reviewer，不能直接把第二條審核路徑塞進第一版流程；必須先重新確認狀態模型、guard 與 ownership 是否足以承接。
 ```
 
 ### Why This Works For SD
@@ -235,10 +237,8 @@ The three examples are not three different features. They are three role-oriente
 - 若待審列表量很大，current status 與常用過濾條件的索引策略需在 discuss 階段提前盤點。
 
 ## Example Scenarios
-- 查詢所有 `PendingReview` 文件。
-- 查詢某一筆文件的完整審核歷程。
-- 查詢某位 reviewer 在一段時間內處理過哪些文件。
-- 查詢哪些文件曾被退回兩次以上。
+- 主線 scenario：系統可查詢所有 `PendingReview` 文件，並可依單筆文件查出完整審核歷程，包含 old status、new status、operator 與 acted_at。
+- 邊界 scenario：若業務要求查詢「曾被退回兩次以上的文件」，第一版資料模型應至少保留足夠 history 粒度；但大型跨文件分析報表仍不屬於第一版範圍。
 ```
 
 ### Why This Works For DBA
@@ -252,6 +252,7 @@ The three examples are not three different features. They are three role-oriente
 ### When The Team Is Small
 - one person may write a mixed-role `idea.md`
 - use the three examples as a coverage checklist instead of copying one role literally
+- still keep both a mainline scenario and a boundary scenario so the mixed-role draft does not collapse back into abstract prose only
 
 ### When SA, SD, and DBA All Participate
 - SA should produce the initial business-facing version

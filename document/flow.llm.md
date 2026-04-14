@@ -15,7 +15,7 @@
 4. 只有在前段未完成或前提失效時才回讀 `idea.md`
 
 ### Stage 快速判斷
-- `idea`：需求、範圍、限制、依賴、風險仍未成形
+- `idea`：需求、範圍、限制、依賴、風險仍未成形，或仍無法用穩定的 example / scenario 說清主要需求
 - `(discuss)`：仍有影響 scope、stage、責任邊界、資料落點或驗收方式的未決議題
 - `plan`：方向已收斂，但尚未拆成可執行 stage / 驗收點
 - `(done)`：已有明確 stage 可實作，正在做程式或文件變更與驗證
@@ -63,7 +63,7 @@
 
 ## 5. 每輪最小輸出要求
 
-- `idea`：至少更新一次 `idea.md`，或明確指出還缺哪些資訊
+- `idea`：至少更新一次 `idea.md`，或明確指出還缺哪些資訊；若需求仍抽象，優先補 example / scenario
 - `(discuss)`：至少新增一輪 `history.md`
 - `plan`：至少新增或修正一段可執行 stage、驗收點或 fallback
 - `(done)`：至少留下可驗證的變更、驗證結果、`history.md` 更新

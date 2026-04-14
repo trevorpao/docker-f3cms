@@ -35,6 +35,7 @@
 - `idea.md` is the starting contract of an FDD feature.
 - A weak `idea.md` does not only slow down SA. It causes repeated discuss loops, unstable plans, avoidable schema rework, and implementation drift later.
 - Therefore, `idea.md` should be written as a decision-ready requirement basis, not as brainstorming scraps and not as implementation notes.
+- `idea.md` should converge by example first. In practice, this means representative examples and scenarios are not decoration; they are one of the primary tools for making the requirement concrete enough to debate.
 
 ## What idea.md Is
 
@@ -47,6 +48,8 @@ It should answer:
 - what is in scope and out of scope
 - what constraints already exist
 - what assumptions, dependencies, risks, and unresolved questions must be surfaced early
+
+It should also make those answers testable in business language through concrete examples or scenarios. If readers cannot point to a few representative cases and say "this is the behavior we mean", the document is usually still too abstract.
 
 It should be strong enough that later discuss can focus on real tradeoffs instead of spending time reconstructing basic context.
 
@@ -99,14 +102,36 @@ Before a feature can rely on `idea.md` as a stable starting point, the document 
 - at least one stable business object or process target is named
 - known constraints and dependencies are listed
 - major unresolved questions are visible instead of hidden
+- at least one concrete example or scenario exists to anchor the requirement in real behavior
 
 ### Planning-Ready Standard
 - SA has already decomposed the requirement beyond page names
 - SD can see likely module or layer implications
 - DBA can see likely entity, schema, relationship, lifecycle, audit, or performance implications
 - the document is detailed enough for discuss to produce real decisions rather than restating the same problem
+- the main requirement can be explained through representative scenarios, edge boundaries, or contrasting examples rather than only abstract summary prose
 
 If these conditions are not met, the feature is not ready to move cleanly into later FDD stages.
+
+## Specification by Example Requirement
+
+In this project, `idea.md` should prefer Specification by Example as the default convergence style.
+
+This does not mean the document becomes a test file or acceptance script. It means the requirement should be clarified through representative examples and scenarios before later stages try to split work into implementation steps.
+
+Why this matters:
+- examples expose hidden assumptions faster than abstract prose
+- scenarios force clearer scope boundaries and actor roles
+- example-driven wording helps SA, SD, and DBA debate the same requirement from the same concrete baseline
+- LLMs produce less drift when the requirement is grounded in explicit cases
+
+Practical rule:
+- do not treat examples as an appendix added at the end only if there is time
+- use examples and scenarios as one of the main tools to decide scope, ownership, data meaning, and non-scope
+
+When examples and surrounding prose disagree:
+- treat the disagreement as a sign that the requirement is not yet converged
+- update the prose, the examples, or both until they express the same feature truth
 
 ## Role Responsibilities
 
@@ -173,7 +198,18 @@ The exact wording can vary, but a strong `idea.md` should normally contain the f
 
 ### 10. Early Examples or Scenarios
 - include a few representative examples that make the problem concrete
+- treat this section as a primary convergence tool, not an optional appendix
 - prefer scenario-based examples over vague prose
+- include at least one mainline scenario and at least one boundary, exception, or counter-example when the feature has meaningful scope edges
+- examples should help clarify business truth, data meaning, ownership, and expected system outcome
+
+For strong example-driven `idea.md` quality, each scenario should usually make visible:
+- the triggering condition or starting context
+- the actor or system participant
+- the action or event
+- the expected outcome
+- the resulting data, state, log, or workflow consequence when relevant
+- any important boundary such as "allowed in this round" versus "explicitly not included"
 
 ## Recommended Section Order
 
@@ -193,11 +229,24 @@ For most features, the following order works well:
 
 This order moves from business meaning to system consequence, which is usually the safest path for SA, SD, and DBA to collaborate.
 
+If the feature is complex, it is also acceptable to move Example Scenarios slightly earlier, as long as they help the rest of the document converge instead of fragmenting it. The main rule is that examples should drive understanding, not trail behind it.
+
 ## Writing Rules
 
 ### Use Business-Meaningful Language First
 - start from the business object, process, or operational problem
 - do not start from route names, button labels, or page blocks unless those are truly the product boundary
+
+### Prefer Example-Driven Convergence
+- when a requirement is still abstract, add or refine scenarios before adding more abstract paragraphs
+- use examples to clarify what is in scope, what is out of scope, and where ownership or state changes happen
+- if a feature has multiple interpretations, write contrasting scenarios until the ambiguity becomes visible
+- prefer examples that reveal state transitions, actor boundaries, query implications, or audit consequences
+
+### Use Scenarios To Expose Boundaries, Not Only Happy Paths
+- include at least one scenario that shows the intended mainline behavior
+- when useful, include a boundary case, exception, or explicitly excluded case
+- do not let all examples be idealized UI demos that hide data or lifecycle consequences
 
 ### Prefer Stable Terms Over Temporary Labels
 - use names that can survive UI changes
@@ -256,6 +305,20 @@ Weak pattern:
 Why it is weak:
 - scope expands silently in later stages
 
+### Example-Last Documentation
+Weak pattern:
+- writing several pages of abstract requirement prose and adding one shallow scenario at the end
+
+Why it is weak:
+- the document sounds complete but still leaves scope, ownership, and state implications open to interpretation
+
+### Happy-Path-Only Examples
+Weak pattern:
+- only showing the ideal scenario and omitting edge boundaries, exclusions, or failure-relevant cases
+
+Why it is weak:
+- discuss and plan later inherit hidden ambiguity even though the document appears concrete
+
 ## Quality Review Checklist
 
 Use this checklist before treating an `idea.md` as the basis for discuss or plan.
@@ -268,6 +331,9 @@ Use this checklist before treating an `idea.md` as the basis for discuss or plan
 - [ ] Data, state, audit, or relationship implications are named when relevant.
 - [ ] Constraints and dependencies are listed explicitly.
 - [ ] Risks and open questions are separated from confirmed facts.
+- [ ] At least one concrete scenario anchors the requirement in business reality.
+- [ ] The examples help clarify scope, ownership, and state implications rather than only retelling UI steps.
+- [ ] At least one scenario or counter-example marks an important boundary when the feature has meaningful edge cases.
 - [ ] The document does not read like a UI-only script.
 - [ ] The document does not read like an implementation plan.
 - [ ] SA, SD, and DBA could all identify their next discussion topics from this file.
@@ -330,13 +396,25 @@ Use this checklist before treating an `idea.md` as the basis for discuss or plan
 - 可能影響 discuss / plan 的主要風險。
 
 ## Example Scenarios
-- 情境一
-- 情境二
+- 情境一：主線 scenario
+	- 前提 / 觸發：
+	- 角色 / 參與者：
+	- 行為 / 事件：
+	- 預期結果：
+	- 對資料 / 狀態 / 紀錄的影響：
+- 情境二：邊界或對照 scenario
+	- 前提 / 觸發：
+	- 角色 / 參與者：
+	- 行為 / 事件：
+	- 預期結果：
+	- 為何屬於本輪非範圍或特殊規則：
 ```
 
 ## Exit Guidance
 
 If `idea.md` is still missing basic business meaning, stable object identification, scope boundaries, or data implications, do not force the feature into planning yet.
+
+The same applies if the document has abstract intent but still lacks strong examples. If the requirement cannot yet be explained through a few stable scenarios, it is usually too early to rely on it as planning input.
 
 Instead:
 - keep the feature in early exploration
