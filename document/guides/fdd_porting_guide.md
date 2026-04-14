@@ -212,6 +212,14 @@ Start with:
 - `.github/copilot-instructions.md`
 - `.github/prompts/fdd-*.prompt.md`
 
+If you are porting from this repository, you can also use the helper script directly:
+
+```sh
+./bin/port_fdd.sh /path/to/new-project
+```
+
+This script copies the current FDD bundle, creates `document/spec/`, and initializes a placeholder `document/spec/.current-spec.md` so the receiving project has the minimum handoff structure before you rewrite project-bound rules.
+
 ### Step 2: Rewrite Project-Bound Rules
 
 Before using FDD in the new project, replace:
