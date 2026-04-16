@@ -2,7 +2,7 @@
 
 > 對象：需要在 F3CMS 專案中一次整合 Google / Facebook / LINE / OIDC 的工程師，並希望用同一支 `F3CMS\Oauth` 搭配 DI 的 Handler 與 Opauth Router。
 >
-> 本篇對照金流指南的寫法，示範如何準備環境、註冊 Handler、建構登入 URL、以及用 `Oauth::byToken()`/`validateToken()` 驗證回傳 token。
+> 本篇對照金流指南的寫法，示範如何準備環境、註冊 Handler、建構登入 URL、以及用 `Oauth::byToken()`/`validateToken()` 驗證回傳 token；OIDC 相關範例以 `AbstractOIDCFlowHelper` + `MOEOIDCHelper` 的新結構為準。
 
 ## 前置條件
 - PHP 8.1+，並已執行 `composer install` 以載入 `vendor/autoload.php`。
@@ -16,9 +16,9 @@
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | Facebook | `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET` |
 | LINE | `LINE_CLIENT_ID`, `LINE_CLIENT_SECRET` |
-| OIDC | `OIDC_URI`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_CALLBACK_URL` |
+| OIDC | `OIDC_URI`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` |
 
-> 對應 `f3()` 設定鍵：`google.client_id/secret`、`facebook.client_id/secret`、`line_client_id/secret`、`oidc.uri/client_id/client_secret` 等，可透過 dotenv 或自訂設定檔載入。
+> 對應 `f3()` 設定鍵：`google.client_id/secret`、`facebook.client_id/secret`、`line_client_id/secret`、`oidc.uri/client_id/client_secret` 等，可透過 dotenv 或自訂設定檔載入。`MOEOIDCHelper` 目前的 callback path 由類別內固定為 `/auth/oidc/oauth2callback`；若有其他 OIDC provider，建議另建子類調整。
 
 ### Sample Profile (格式化後)
 ```json
@@ -39,13 +39,12 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../libs/Autoload.php';
 
 use F3CMS\Oauth;
-use F3CMS\OauthHandler\{FBOauthHandler, GoogleOauthHandler, LineOauthHandler};
-use F3CMS\OIDCHelper;
+use F3CMS\OauthHandler\{FBOauthHandler, GoogleOauthHandler, LineOauthHandler, MOEOIDCHelper};
 
 $google   = new GoogleOauthHandler();
 $facebook = new FBOauthHandler();
 $line     = new LineOauthHandler();
-$oidc     = new OIDCHelper();
+$oidc     = new MOEOIDCHelper();
 
 $oauth = new Oauth([
     'google'   => $google,
@@ -57,6 +56,11 @@ $oauth = new Oauth([
 Oauth::setInstance($oauth); // 讓既有的 Oauth::byToken() 可使用 DI 版本
 ```
 > 你也可以傳入自訂的 `$opauthFactory`（第二個參數），例如注入 Service Container 內建的 Router，而不用直接呼叫 `OpauthBridge::instance()`。
+
+## OIDC Handler 結構
+- `AbstractOIDCFlowHelper`：封裝 generic OIDC flow，共用 `auth`、`token`、`userinfo` 三個 command，並提供 `registerCommand()` 擴充 provider-specific 命令。
+- `MOEOIDCHelper`：教育雲 OIDC 的具體實作，覆寫 `auth` scope 並增量註冊 `eduinfo`。
+- 擴充原則：若要接另一個 OIDC provider，新增自己的 helper 類繼承 `AbstractOIDCFlowHelper`，不要把 provider-specific command 直接塞回 base class。
 
 ## Oauth API 呼叫序列 (Mermaid)
 
@@ -163,6 +167,7 @@ $oauth->configureRoute(__DIR__ . '/../conf/opauth/google.conf.php');
   $eduinfo = $profile['info']['eduinfo'] ?? [];
   ```
 - **多階段流程說明**：`validateToken()` 會先打 `userinfo`，若成功再自動加上 `eduinfo`；不需在 controller 另外整併。
+- **Command 擴充方式**：`eduinfo` 不是 generic OIDC command，而是 `MOEOIDCHelper` 在建構時透過 `registerCommand('eduinfo', ...)` 加入。
 - **排錯重點**：`unsupported_provider` 代表 alias 未註冊；`bad response` 則表示 OIDC 端未回傳 JSON。
 
 ## 驗證 Token 的統一寫法
@@ -190,5 +195,6 @@ public function oauthCallback(Request $request)
 - **測試**：可為每個 handler 建立 stub（實作 `OauthHandlerInterface`），透過建構子注入到 `Oauth`，快速模擬 tokeninfo API 回傳。
 - **記錄日誌**：統一記錄 `provider + action + payload`，對應 Handler 內部也會寫入 `google_auth.log`/`facebook_auth.log` 等檔案，可對照找問題。
 - **State/Nonce**：所有 handler 都會在 `auth` 指令時自動產生 state/nonce 並寫入 SESSION，記得在 callback 驗證才安全。
+- **OIDC 擴充**：若需另一個 OIDC provider，優先新增 `AbstractOIDCFlowHelper` 子類，利用 `registerCommand()` 擴充，不要直接修改 `MOEOIDCHelper`。
 
-> 需要更細的參數和 API 行為，請開啟 `document/examples/google_usage.md`、`facebook_usage.md`、`line_usage.md` 或 OIDC 專案文件，本指南專注在統一 `F3CMS\Oauth` 的整合流程。
+> 本指南目前就是 OAuth handler 的主要整合文件；若後續再拆 provider 專屬文件，需同步更新這份入口說明。
