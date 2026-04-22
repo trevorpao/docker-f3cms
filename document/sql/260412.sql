@@ -7,13 +7,38 @@ CREATE TABLE IF NOT EXISTS `tbl_member` (
 	`id` int(11) NOT NULL AUTO_INCREMENT,
 	`status` enum('Enabled','Disabled') NOT NULL DEFAULT 'Enabled',
 	`display_name` varchar(255) NOT NULL DEFAULT '',
+	`email` varchar(191) NOT NULL DEFAULT '',
+	`avatar` varchar(255) NOT NULL DEFAULT '',
 	`last_ts` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
 	`last_user` int(11) DEFAULT 0,
 	`insert_ts` timestamp NULL DEFAULT current_timestamp(),
 	`insert_user` int(11) DEFAULT 0,
 	PRIMARY KEY (`id`),
+	UNIQUE KEY `uniq_email` (`email`),
 	KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Member baseline entity';
+
+CREATE TABLE IF NOT EXISTS `tbl_member_oauth` (
+	`id` int(11) NOT NULL AUTO_INCREMENT,
+	`member_id` int(11) NOT NULL DEFAULT 0,
+	`provider` varchar(32) NOT NULL DEFAULT '',
+	`provider_uid` varchar(191) NOT NULL DEFAULT '',
+	`provider_email` varchar(191) NOT NULL DEFAULT '',
+	`provider_name` varchar(191) NOT NULL DEFAULT '',
+	`provider_avatar` varchar(255) NOT NULL DEFAULT '',
+	`raw_profile` longtext CHARACTER SET utf8mb4 DEFAULT NULL,
+	`bind_status` enum('Enabled','Disabled') NOT NULL DEFAULT 'Enabled',
+	`last_login_ts` timestamp NULL DEFAULT NULL,
+	`last_ts` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+	`last_user` int(11) DEFAULT 0,
+	`insert_ts` timestamp NULL DEFAULT current_timestamp(),
+	`insert_user` int(11) DEFAULT 0,
+	PRIMARY KEY (`id`),
+	UNIQUE KEY `uniq_provider_uid` (`provider`,`provider_uid`),
+	KEY `idx_member_id` (`member_id`),
+	KEY `idx_provider_email` (`provider`,`provider_email`),
+	KEY `idx_bind_status` (`bind_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Member-owned OAuth identity binding';
 
 CREATE TABLE IF NOT EXISTS `tbl_duty` (
 	`id` int(11) NOT NULL AUTO_INCREMENT,
