@@ -119,6 +119,26 @@ Boundaries to keep clear:
 - Feed persists entity data and log rows, but should not absorb generic workflow rule evaluation
 - old WorkflowEngine instance persistence entry points should be treated as retired APIs, not as recommended Reaction integration hooks
 
+## Event Trigger Coordination Pattern
+
+When a Reaction handles a user- or content-derived event that may unlock downstream business effects, Reaction should remain the coordination point, not the owner of event truth persistence.
+
+Recommended sequence:
+1. read request data and current operator / member context
+2. validate the target entity exists and is in an allowed state
+3. delegate first-hit truth write to the owning module or module-owned service
+4. let the module-owned coordinator decide whether task completion, reward, or log side effects should happen in the same transaction
+5. return through `_return()` as usual
+
+Boundaries to keep clear:
+- Reaction may validate and coordinate the event, but should not directly own truth tables that belong to another module
+- first-hit truth rows and downstream writeback stay in the owning module boundary, even when the entry event originates from another module's route
+- evaluators should consume preloaded truth or module-provided context, not query frontend event logs directly inside Reaction
+
+Concrete F3CMS example:
+- `rPress::do_seen()` may validate member login and published press existence, then delegate to a module-owned coordinator such as `kDuty::completeTasksForSeenTarget()`
+- the actual `member_seen` truth row remains member-owned, while task completion and reward writeback remain duty / task / manaccount-owned side effects
+
 ## 擴充掛點
 | 方法 | 時機 | 用途 |
 | --- | --- | --- |

@@ -1,3 +1,21 @@
+### 第 27 輪討論結果
+1. 本輪承接第 26 輪留下的 `(Optimization)` 前整理，不再回頭補 feature code，而是先對照 `flow.llm.md` 的 entry criteria，確認 EventRuleEngine 第一版的主要實作、Docker 驗收與 production-facing gap 都已完成。
+2. 本輪已建立 `document/spec/EventRuleEngine/optimization.md`，正式沉澱 EventRuleEngine 第一版的穩定規則，包含 shared pure engine / owning module 邊界、`member_seen` first-hit truth 語意、`MEMBER_SEEN_TARGET` 的 preload-only evaluator contract，以及 Docker 驗證口徑。
+3. 本輪同步把 shared 規則回寫到 `document/glossary.md` 與 `document/reference/reaction_reference.md`，讓後續跨 feature 討論 EventRuleEngine、first-hit truth 與 event-trigger coordination pattern 時，不必再回到單一 spec 才能對齊用字與責任。
+4. 因此 EventRuleEngine 目前已正式進入 `(Optimization)`；後續 remaining closeout 已收斂為封存前的 `history.md` 壓縮整理，以及判斷是否需要再升格 dedicated integration guide。
+
+### 第 26 輪討論結果
+1. 本輪承接 `check` / review 的最後一個 production-facing gap：雖然 `kDuty::completeTasksForSeenTarget()` 與 `member_seen_task_done_reward.php` 已能驗證 helper path，但 `member_seen` 尚未真正從 `rPress` reaction 入口收斂到 `fMember` truth write 與 task completion runtime。
+2. 本輪已在 `www/f3cms/modules/Press/reaction.php` 新增 `rPress::do_seen()` 與對應的 `completeSeenForMember()` helper，讓 `/api/Press/seen` 可直接以目前登入 member 與指定 press row 觸發 `kDuty::completeTasksForSeenTarget()`；其中 press lookup 只接受已上線文章，並保留 `rPress` 作為預設 source。
+3. 本輪同步新增 Docker smoke `www/tests/smoke/event_rule_engine/press_seen_reaction_task_done_reward.php`，實際以真實 `rPress` path 驗證第一次 seen 會建立 `tbl_member_seen` truth、把 task 轉為 `Done`、發放 100 點 reward，第二次 seen 則維持 idempotent，不重複發放。
+4. 因此 concrete scenario 的 `Member::Register -> rPress seen -> task done + 100 點 reward` 現在已不再停留在 helper-only evidence，而是已有 production-facing reaction path 的 Docker runtime evidence；下一步可從 `check` 收斂進 `(Optimization)` 前的文件整理與封存前盤點。
+
+### 第 25 輪討論結果
+1. 本輪承接 `check` 中 Step 2 的真實 runtime 缺口：既有 `kDuty::createTasksForTrigger()` 與 `member_register_task_create.php` 先前只驗證 helper trigger path，但尚未明確接到實際的新會員註冊成功路徑。
+2. 本輪已把 `Member::Register` trigger 正式接到 `www/f3cms/modules/Member/kit.php` 的 `kMember::registerByOauth()`；現在新會員在完成 `fMember::createMember()` 與 OAuth 綁定後，會於同一條 registration transaction 內呼叫 `kDuty::createTasksForTrigger('Member::Register', member_id, member_id)`。
+3. 本輪同步新增 Docker smoke `www/tests/smoke/event_rule_engine/member_register_oauth_task_create.php`，實際經由 Google 註冊 payload 走過 `registerByOauth()`，驗證 duty task 會在真實註冊路徑中建立、task status 維持 `New`、`tbl_task_log` 留下單一 `MEMBER_REGISTER_TRIGGER` 紀錄，且 `tbl_member_oauth` 綁定 row 也會一併建立。
+4. 因此 `Member::Register -> task create` 現在不再只是 helper-based evidence，而是已補到目前 repo 內最接近 production 的註冊 runtime path；Concrete Scenario 的剩餘 next step 已重新收斂為 review：判斷是否還需要把 `member_seen` 進一步收斂進真實 `rPress -> fMember` reaction，或可直接進入 `(Optimization)` 前整理。
+
 ### 第 24 輪討論結果
 1. 本輪正式完成 Step 3 的最小 runtime implementation 與 Docker 驗證：`www/tests/smoke/event_rule_engine/member_seen_task_done_reward.php` 已確認第一次寫入 `member_seen` 後，會建立唯一 truth row、把對應 task 轉為 `Done`，並在同一條 transaction 內完成 100 點 reward 入帳與 task / manaccount log 寫入。
 2. 為了讓第一個 concrete scenario 不破壞 generic baseline，本輪同步補上 `MEMBER_SEEN_TARGET` evaluator、`member_seen_targets` context preload、`kDuty::completeTasksForSeenTarget()`、`fTask::markDone()`、`fManaccount::addPointsForMember()` 等 module-owned helper，並重新驗證 `basic_or_rule.php`、`member_context_preload.php`、`member_register_task_create.php` 都仍可通過。

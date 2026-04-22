@@ -16,7 +16,7 @@
 
 ## Current Stage Assessment
 
-本 spec 在本輪出現明確方向漂移：目前 repo 內的 prototype 仍以 `WATCHED_VIDEO` / `EXAM_SCORE` / `HAS_BADGE` 為主，且 `Member` preload 對 `watched_video_codes` / `exam_scores` 仍是暫時 bridge 思維；但當前已確認的第一個 production scenario 已改為 `Member::Register -> duty 建 task -> rPress seen -> fMember 寫 member_seen -> task done + 100 分`。這代表目前 code 與舊 planning baseline 只能算第一版通用骨架；其中 generic AST 範例仍需保留作為第二個測試標準，但新的 concrete scenario 需要額外補齊 duty contract 與 seen integration，因此本 spec 的承接點需從原本的 `check` 回退到 `plan`，先同步 payload contract、資料落點與 integration 邊界，再進下一輪實作。
+本 spec 先前曾因第一個 production scenario 改為 `Member::Register -> duty 建 task -> rPress seen -> fMember 寫 member_seen -> task done + 100 分` 而從舊的 generic baseline 回退到 `plan`，用來同步 payload contract、資料落點與 integration 邊界。該回退已在後續多輪中完成；目前 concrete scenario 的 helper runtime、真實 OAuth 註冊成功路徑、真實 `rPress -> fMember` reaction path，以及 Docker smoke 證據都已補齊，因此本 spec 已滿足 `(Optimization)` 入口，承接點不再是 `check` / review，而是正式進入文件沉澱與封存前整理。
 
 目前可作為承接基線的穩定事實如下：
 - Stage 1 已確立 DSL contract、rule types、資料邊界與 validator 基準
@@ -25,15 +25,16 @@
 - 第一版 validator / parser / registry / traversal 骨架已完成實作，並已有 Docker smoke 可驗證最小判斷路徑
 
 因此目前承接點為：
-- feature 需先由舊的 `check` 承接點回退到 `plan`，把新的 concrete scenario 正式寫入 spec
+- feature 已正式進入 `(Optimization)`
+- `optimization.md` 已開始承接第一版的穩定規則、共用詞彙與封存前整理
 - shared pure engine 目前維持在 `www/f3cms/libs/EventRuleEngine.php`，並比照 WorkflowEngine 承接 parser、validator、registry、traversal 與 pure evaluator runtime
 - `duty`、`task`、`member`、`press`、`manaccount` 等 table-backed payload source / context preload / 狀態寫回 仍必須回到各自 owning module，而不是收斂成單一 `EventRuleEngine` module
 - 目前這個 repo 與 Docker live `target_db` 都已具備 Step 3 前的最小 schema / module baseline，包含 `tbl_member_seen`；`Member`、`Duty`、`Task`、`Manaccount` Feed 已存在，後續可直接承接 Step 3 runtime implementation
 - `Duty` module 已建立第一條真實 payload source path：`kDuty::createRuleEngine()` 可由 `tbl_duty.claim` / `factor` 載入 payload 並建立 shared engine
 - `Member` module 已建立第一條 player context preload contract：`kMember::preloadEventRuleContext()` 可由 `Member`、`tbl_member_heraldry` / `tbl_heraldry`、`Manaccount` 組出 context payload，並保留 `watched_video_codes` / `exam_scores` 的 override 注入口
 - `Duty` module 已建立第一個上層 evaluation helper：`kDuty::evaluateForMember()` 可把 `Duty` payload source 與 `Member` context preload 串成單一 evaluate 入口
-- concrete scenario 的最小 runtime path 已落地：`Member::Register` trigger、`member_seen` truth source、duty 內 task contract 回讀、task done 與點數 reward transaction 均已有 module-owned helper 與 Docker smoke 驗證
-- 目前尚未進入 `(Optimization)`，因為仍有 integration 與驗收缺口待盤點
+- concrete scenario 的最小 runtime path 已落地：`Member::Register` trigger 已補到 `kMember::registerByOauth()` 的真實註冊成功路徑，`member_seen` 也已補到真實 `rPress -> fMember` reaction path；duty 內 task contract 回讀、task done 與點數 reward transaction 均已有 module-owned helper 與 Docker smoke 驗證
+- concrete scenario 的主要 production-facing gap 已關閉，目前剩餘工作已收斂為 `(Optimization)` 中的文件整理、規則沉澱與封存前盤點
 - 本文件目前的角色是維持 EventRuleEngine 第一版骨架與後續收斂順序的正式基線
 
 ## Concrete Scenario Reset
@@ -691,4 +692,4 @@ module / reaction 與 engine 的整合至少需驗證以下責任邊界：
 
 ## Current Next Step
 
-本輪已完成 Step 3 的最小 runtime implementation 與 Docker 驗證：`member_seen_task_done_reward.php` 已確認第一次 seen 會建立 `tbl_member_seen` truth、將 task 轉為 `Done`、同步發放 100 點 reward，第二次 seen 則維持 idempotent，不重複發放；同時 generic baseline smoke 仍維持通過。下一步應回到 `check` / review 視角，盤點是否還要把這條 helper 基線再往真實 `rPress -> fMember` reaction path 收斂，或正式進入 `(Optimization)` 前的收尾檢查。
+本輪已正式進入 `(Optimization)`，並建立 `optimization.md`、補 shared glossary / reaction reference，同步 EventRuleEngine 第一版的穩定規則。下一步應以封存前 closeout 為主：壓縮 `history.md`、確認是否還需要 dedicated integration guide，以及盤點是否已具備長期維護所需的最小文件集。

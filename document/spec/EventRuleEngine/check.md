@@ -21,6 +21,10 @@
 - [x] repo 端已把 `tbl_member_seen` 與 duty contract 回讀 baseline 補進 `plan.md` / daily SQL
 - [x] live `target_db` 已套用新增的 `tbl_member_seen` DDL
 - [x] 新確認的 `Member::Register -> Press seen -> task done -> 100 點 reward` concrete scenario 已同步到既有 code 與 live schema
+- [x] `Member::Register` trigger 已接上 `kMember::registerByOauth()` 的真實 OAuth 註冊成功路徑，且 Docker smoke 已驗證會依 duty definition 建立 task
+- [x] `member_seen` 已收斂進真實 `rPress -> fMember` reaction path，且 Docker smoke 已驗證 task done / reward path 仍維持 idempotent
+- [x] 已正式確認 EventRuleEngine 第一版可進入 `(Optimization)`
+- [x] `optimization.md` 已建立並承接穩定規則摘要
 
 ## 第一版驗收清單
 
@@ -82,14 +86,15 @@
 - [x] Step 1: duty definition 的 contract 是否已定義，且 claim payload 能表達 `Member::Register` trigger 與 `task_template`
 - [x] Step 1: duty 內的 `task_template` 是否已能承接 `factor` 與 `reward` contract，且 task 透過 `duty_id` 即可回讀
 - [x] Step 1: Docker DB-backed smoke 是否已驗證 duty definition 可寫入 `tbl_duty.claim` 並正確回讀
-- [x] Step 2: 觸發 `Member::Register` 後，是否會依 duty definition 建立 task
+- [x] Step 2: 觸發真實 OAuth `Member::Register` 註冊成功路徑後，是否會依 duty definition 建立 task
 - [x] Step 3 前置: repo baseline 是否已定義 `tbl_member_seen` 與 `member_id + target + row_id + insert_ts` 之類的結構
 - [x] Step 3 前置: `member_seen` 是否已明確採「第一次達標就永遠成立」語意
 - [x] Step 3 前置: `rPress` seen endpoint 是否已明確規定只做驗證與協調，而實際寫入落在 `fMember`
 - [x] Step 3 前置: `MEMBER_SEEN_TARGET` 是否已成為第一個 concrete evaluator contract
 - [x] Step 3: `member_seen` 成立後，task 是否會異動為 `Done`
 - [x] Step 3: task done 與 100 點 reward 是否已規定走同一個 transaction
+- [x] Step 3: 真實 `rPress -> fMember` reaction path 是否已接上，且第一次 / 重複 seen 皆符合 idempotent 預期
 
 ## Current Next Step
 
-本輪已完成 Step 3 的 Docker DB-backed 驗證，包含 `member_seen` 首次寫入、task 狀態轉為 `Done`、100 點 reward 入帳、task/account log 單筆寫入，以及第二次 seen 不重複發放。下一步應回到 review，判斷是否還有必要把 helper 路徑再接上真實 `rPress -> fMember` reaction，或可直接進入 `(Optimization)` 前的整理。
+本輪已建立 `optimization.md`，並把 EventRuleEngine 第一版的穩定規則回寫到 shared glossary / reaction reference。下一步應以封存前 closeout 為主：壓縮 `history.md`、確認是否需要 dedicated integration guide，以及盤點是否還有必須升格到共享文件的剩餘規則。
