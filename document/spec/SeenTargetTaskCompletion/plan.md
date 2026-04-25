@@ -1,8 +1,8 @@
 # SeenTargetTaskCompletion - plan.md
 
 ## Current Stage
-- `plan`
-- 依 `history.md` Round 3 / Round 4，owner、資料模型、transaction 原則與 target existence hook 已收斂，本文件負責把這些結論拆成可執行階段。
+- `(done)`
+- Stage 1 到 Stage 4 的規劃文件已完成；目前已開始沿既有 `member_seen` path 做第一個 implementation slice，並以 Docker smoke 驗證局部 contract。
 
 ## Stage 1: Contract 與資料模型定稿
 
@@ -106,5 +106,5 @@ Fallback：
 - 若本輪尚未找到可直接執行的 Docker smoke，至少先在 `check.md` 明列待補驗證入口，不以 host-only failure 代替驗收。
 
 ## 下一步
-- 文件規劃階段已完成，下一個最小步驟是進入 `(done)`，依 Stage 1 至 Stage 4 的定稿內容開始拆分現有 code path。
-- implementation 開始後，應同步建立 `www/tests/smoke/seen_target_task_completion/` 下的 canonical suites，並以 Docker 命令驗證。
+- 下一個最小步驟是繼續 `(done)`，把 pending query / 前台 task list 與 completion path 再往 `task_unreachable` 或 prerequisite-based achievable filtering 收斂一小步，避免只排除 expired / target_unavailable 後仍把不可達成 task 視為可完成。
+- implementation 期間，應同步把 runtime 驗證逐步從 `event_rule_engine/*` baseline smoke 移到 `www/tests/smoke/seen_target_task_completion/` canonical suites。

@@ -30,6 +30,7 @@ services:
             - mariadb
         volumes:
             - ${APACHE_WWW_PATH}:/var/www
+            - ${DOCU_PATH}:/var/www/document
             - ${MYSQL_DATA_PATH}:/var/lib/mysql
             - ./conf/php/php-ini-overrides.ini:/usr/local/etc/php/conf.d/php-ini-overrides.ini
             - ./conf/php/www.conf:/usr/local/etc/php-fpm.d/www.conf

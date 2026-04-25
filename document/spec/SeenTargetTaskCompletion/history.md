@@ -62,3 +62,119 @@
 - 已正式列出 implementation 後應建立的 canonical smoke suites：`seen_target_task_completion/press_seen_reward.php`、`post_seen_accumulate_reward.php`、`target_hook_unavailable.php`、`repeat_seen_short_circuit.php`、`cross_feed_transaction_rollback.php`。
 - 已正式定義驗證結果判讀規則：host lint `exit 134` 只記錄為環境噪音；只有 Docker smoke 與 canonical suite 可作為 runtime 驗收基準。
 - 這代表 Stage 4 的文件任務已完成；Stage 1 到 Stage 4 的規劃文件已齊備，下一步可正式進入 `(done)`，開始 implementation 與 smoke suite 落地。
+
+## Round 9
+- 本輪正式進入 `(done)`，但只做最小 implementation slice，不重開 schema 或 owner 邊界。
+- 目前先沿既有 legacy `member_seen` path 落地第一步：`kDuty::completeTasksForSeenTarget(...)` 已顯式回傳 `short_circuited_tasks` 與 `skipped_tasks`，讓第二次 seen 呼叫不再只有空 `completed_tasks`，而能回報 `already_completed` short-circuit。
+- 為了支撐這個 result shape，`fTask` 新增了較窄的 `byMemberId(...)` 讀取面，讓 `Duty` 能同時看 pending 與 done task，而不必立刻重開更大的 query abstraction。
+- 這個切片仍明確屬於 legacy baseline：truth 仍是 `member_seen`，transaction 仍在 kit，還沒有 `{entity}_seen`、target hook dispatch、achievable / expired filtering。
+- 已完成兩條 Docker baseline smoke 驗證：`event_rule_engine/member_seen_task_done_reward.php` 與 `event_rule_engine/press_seen_reaction_task_done_reward.php` 都通過，且第二次 seen 現在會顯式回傳一筆 `already_completed` short-circuit，同時維持 seen/task/account log 的單筆冪等。
+- 下一步：繼續沿最小 implementation slice 前進，優先在 target hook dispatch、achievable filtering、或 canonical smoke suite 之間選一個局部切入點，不要一次重開全部 `{entity}_seen` schema。
+
+## Round 10
+- 本輪延續 `(done)` 階段，但仍維持最小切片：沒有重開 schema，也沒有擴大到 target hook 或 achievable filtering。
+- 本輪把第一條 canonical smoke suite 從 baseline `event_rule_engine/*` domain 正式搬進 `www/tests/smoke/seen_target_task_completion/press_seen_reward.php`，讓 SeenTargetTaskCompletion 首次擁有自己的正式 smoke 入口。
+- 新 canonical suite 目前仍驗證 legacy `member_seen` 路徑，內容對齊既有 `rPress` seen completion 與 repeat short-circuit 行為，因此它是「canonical path 已建立，但 runtime contract 仍是 legacy baseline」的過渡狀態。
+- 已用 Docker 完成新 suite 驗證：`docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/press_seen_reward.php` 通過，且輸出仍符合第一個 implementation slice 的 short-circuit contract。
+- 這代表本 spec 的驗證入口已不再完全依賴 `event_rule_engine/*` baseline；不過 canonical suite 目前只有一條，尚未覆蓋 `Post` 累積、target hook unavailable、cross-feed rollback 等情境。
+- 下一步：優先再補一條 canonical suite 或落一個 target hook / achievable filtering 切片，持續把 `seen_target_task_completion/` domain 從 smoke 入口一路推進到 runtime contract。
+
+## Round 11
+- 本輪延續 `(done)` 階段，仍維持「先補 canonical smoke，再決定下一個 runtime slice」的策略，沒有重開 schema 或 owner 邊界。
+- 本輪新增第二條 canonical smoke suite：`www/tests/smoke/seen_target_task_completion/repeat_seen_short_circuit.php`，把 repeat seen 的 `already_completed` short-circuit 從 `press_seen_reward.php` 的附帶斷言，提升成獨立契約。
+- 新 suite 仍驗證 legacy `member_seen` baseline，但它明確收斂了「第二次 seen 不應新增 completed_tasks、只應回傳一筆 `already_completed` short-circuit，且 seen/task/account log 維持單筆冪等」這條 runtime 行為。
+- 已用 Docker 完成驗證：`docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/repeat_seen_short_circuit.php` 通過。
+- 到目前為止，`seen_target_task_completion/` canonical domain 已至少有兩條可執行 suite：`press_seen_reward.php` 與 `repeat_seen_short_circuit.php`；但 `Post` 累積、target hook unavailable、cross-feed rollback 仍未落地。
+- 下一步：優先在 `Post` 累積 canonical suite 與 target hook runtime slice 之間選一個局部切入點，繼續把 legacy baseline 驗證往 spec 正式契約推進。
+
+## Round 12
+- 本輪延續 `(done)` 階段，但沒有直接打開 `Post` runtime surface；先選了更小的 target hook slice，因為目前 `Post` 模組尚無 seen completion 入口，直接補 `post_seen_accumulate_reward.php` 會把 scope 擴大成新 public surface + smoke。
+- 本輪在 `kDuty::completeTasksForSeenTarget(...)` 補上最小 fail-closed target hook dispatch：若 `\F3CMS\k{Target}::isAvailable(...)` 不存在或回傳 false，會在 truth write 前直接回傳 `skipped_tasks.target_unavailable`，避免寫入 seen truth 與 reward path。
+- 本輪也在 `kPress` 補上第一個 owner-side hook：`kPress::isAvailable(...)` 以 `fPress::onePublished(...)` 作為 published availability 判準。
+- 本輪新增第三條 canonical smoke suite：`www/tests/smoke/seen_target_task_completion/target_hook_unavailable.php`，驗證 target 先被建立 task、後續變成 unavailable 時，completion path 只回 skipped，不寫 seen、不改 task 狀態、不發 reward。
+- 已用 Docker 完成驗證：`docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/target_hook_unavailable.php` 通過。
+- 到目前為止，`seen_target_task_completion/` canonical domain 已有三條可執行 suite：`press_seen_reward.php`、`repeat_seen_short_circuit.php`、`target_hook_unavailable.php`；但 `Post` 累積與 cross-feed rollback 仍未落地。
+- 下一步：優先補 `post_seen_accumulate_reward.php`，或把 target hook coverage 從 `Press` 擴到其他 target owner。
+
+## Round 13
+- 本輪延續 `(done)` 階段，仍維持最小 canonical-suite 優先策略；沒有新增 `rPost` public API，而是先驗證 `Post` 累積契約能否直接掛在現有 legacy `kDuty` path。
+- 本輪在 `kPost` 補上第一個 owner-side availability hook：`kPost::isAvailable(...)` 以 `fPost::one(..., ['status' => fPost::ST_ON])` 作為 enabled 判準，讓 `Post` target 也能走既有 fail-closed target hook dispatch。
+- 本輪新增第四條 canonical smoke suite：`www/tests/smoke/seen_target_task_completion/post_seen_accumulate_reward.php`，用三個 `Post` target 驗證「前兩次 seen 只累積 truth 並回 `factor_not_matched`，第三次 seen 才完成 task 並發 100 點 reward」這條契約。
+- 新 suite 仍刻意落在 legacy `member_seen` baseline 與 `kDuty::completeTasksForSeenTarget(...)` path，而不是先引入新的 `Post` seen reaction surface；這讓 canonical 驗證可以先前進，而不需要在同一輪重開新 public API。
+- 已用 Docker 完成驗證：`docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/post_seen_accumulate_reward.php` 通過。
+- 到目前為止，`seen_target_task_completion/` canonical domain 已有四條可執行 suite：`press_seen_reward.php`、`repeat_seen_short_circuit.php`、`target_hook_unavailable.php`、`post_seen_accumulate_reward.php`；尚未落地的主要情境只剩 cross-feed rollback 與更完整的 `{entity}_seen` runtime resync。
+- 下一步：優先補 `cross_feed_transaction_rollback.php`，或開始把 canonical suite 已覆蓋的 legacy `member_seen` path 逐步推向 `{entity}_seen`。
+
+## Round 14
+- 本輪延續 `(done)` 階段，仍維持 canonical smoke 先行；沒有先重開 `{entity}_seen`，而是先補齊 Stage 4 已列出的最後一條 major rollback suite。
+- 本輪新增第五條 canonical smoke suite：`www/tests/smoke/seen_target_task_completion/cross_feed_transaction_rollback.php`，利用 strict mode session 下超長 `reward.action_code` 觸發 `tbl_task_log.action_code` 寫入失敗，驗證 `kDuty::completeTasksForSeenTarget(...)` 的 transaction 會把 seen truth、task 狀態與 account side effect 一併回滾。
+- 本輪中途做過一次局部修正：最初 failure 打在 `member_seen.source` 長度限制，而不是預期的 log write；其後已把 smoke 的 `source` 縮短，並加入 failure-point 斷言，確保 suite 真正驗證的是 `action_code` log write rollback。
+- 已用 Docker 完成驗證：`docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/cross_feed_transaction_rollback.php` 通過，且 caught error 已明確為 `Data too long for column 'action_code'`。
+- 到目前為止，`seen_target_task_completion/` canonical domain 已有五條可執行 suite：`press_seen_reward.php`、`repeat_seen_short_circuit.php`、`target_hook_unavailable.php`、`post_seen_accumulate_reward.php`、`cross_feed_transaction_rollback.php`。
+- 下一步：優先把 canonical suite 已覆蓋的 legacy `member_seen` path 逐步推向 `{entity}_seen`，或開始縮小 `{entity}_seen` runtime resync 的第一個 implementation slice。
+
+## Round 15
+- 本輪延續 `(done)` 階段，正式開始 `{entity}_seen` runtime resync 的第一個 implementation slice，但不重開 live schema。
+- 本輪把 `fMember` 的 seen storage 抽成 target-aware abstraction：`oneSeenTarget(...)`、`createSeenTarget(...)` 與 `seenTargetMapByMemberId(...)` 現在都會優先查找 `tbl_{target}_seen`，若 target-specific table 不存在，則自動回退到既有 `tbl_member_seen`。
+- 這個 slice 的目的不是立刻改變 live runtime 的資料落點，而是先把讀寫路徑從「硬編碼 member_seen」改成「entity table 優先、缺表回退」，讓後續 schema 落地時不必再重開整段 orchestration contract。
+- 本輪也讓 `seenTargetMapByMemberId(...)` 可彙整 generic 與 entity seen tables；即使目前 live DB 仍只有 `tbl_member_seen`，這個 preload contract 已先對齊 future `{entity}_seen` 方向。
+- 已確認目前 live DB 仍只有 `tbl_member_seen`，沒有 `tbl_press_seen` / `tbl_post_seen`；因此本輪驗證重點是「abstraction 落地後不破壞現有 canonical behavior」，而不是立即切換 live truth table。
+- 已用 Docker 完成最小驗證：`docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/repeat_seen_short_circuit.php` 與 `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/post_seen_accumulate_reward.php` 都通過。
+- 下一步：若要繼續 `{entity}_seen` resync，應優先決定第一個 live table 落地 target，例如 `tbl_press_seen`，再把 canonical suite 從「fallback abstraction」推進到「真實 entity table write」。
+
+## Round 16
+- 本輪延續 `(done)` 階段，將第一個 live entity table target 收斂到 `Press`，但仍避免直接重建 shared Docker DB。
+- 本輪新增 `Press` 專用 smoke helper，讓 `Press` canonical suites 在執行時暫建 `tbl_press_seen`，因此可以在不污染當前 shared DB 的前提下，直接驗證 runtime abstraction 會優先寫入 entity table，而不是回退 `tbl_member_seen`。
+- 本輪最初曾把 `tbl_press_seen` 定義放進 active Docker schema 檔，但這與目前 SQL artifact 規則不符；其後已修正為改放 `document/sql/260425.sql`，由文件 SQL artifact 承接這個 schema 變更。
+- 已用 Docker 完成四條 `Press` canonical suite 重驗：`press_seen_reward.php`、`repeat_seen_short_circuit.php`、`target_hook_unavailable.php`、`cross_feed_transaction_rollback.php` 都通過，且在 table 存在時已明確驗證 `tbl_press_seen` 才是 truth owner，`tbl_member_seen` 保持 0 筆。
+- 這代表 `Press` 已成為第一個可驗證的 live entity table target；不過目前 shared Docker DB 仍未持久重建，因此 `tbl_press_seen` 仍是由 smoke 在 runtime 暫建，而非環境常駐 table。
+- 下一步：若要把這個 slice 從 smoke-level live table 推進到環境常駐 table，應重建 Docker DB 或提供 migration path，之後再把 `Press` baseline / canonical 驗證全面切到常駐 `tbl_press_seen`。
+
+## Round 17
+- 本輪沒有變更 runtime 行為，只修正 SQL artifact 放置位置的 drift。
+- `tbl_press_seen` 不再放在 `conf/mysql/docker-entrypoint-initdb.d/target_db.sql`，而是改放到 `document/sql/260425.sql`，以符合目前「新增 SQL 放 document/sql/{YYMMDD}.sql」的交付規則，也避免直接耦合到 docker-entrypoint baseline，降低 rollback 成本。
+- 這代表 `Press` live entity table slice 的 schema 依據，現在以 `document/sql/260425.sql` 為準；smoke 仍維持 runtime 暫建 `tbl_press_seen` 的做法，因此不需要重跑 runtime 驗證。
+- 下一步：若要真正讓環境常駐 `tbl_press_seen`，應由 DBA / deployment flow 依 `document/sql/260425.sql` 執行，而不是再把 schema 直接塞回 docker-entrypoint init 檔。
+
+## Round 18
+- 本輪延續 `(done)` 階段，沿用與 `Press` 相同的最小策略，把 `Post` 推進成第二個 live entity table target，但仍不要求 shared Docker DB 先持久重建。
+- 本輪在 `document/sql/260425.sql` 補上 `tbl_post_seen` schema artifact，並新增 `Post` 專用 smoke helper，讓 `post_seen_accumulate_reward.php` 在執行時暫建 `tbl_post_seen`，直接驗證 runtime abstraction 會優先寫入 entity table，而不是回退 `tbl_member_seen`。
+- 已用 Docker 完成驗證：`docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/post_seen_accumulate_reward.php` 通過，且輸出已明確驗證 `post_seen_count = 3`、`member_seen_count = 0`。
+- 這代表 `Post` 已成為第二個可驗證的 live entity table target；目前 `Press` 與 `Post` 都能在 table 存在時走 entity truth path，但 shared Docker DB 仍未持久重建，所以兩者目前仍由 smoke 在 runtime 暫建 seen tables。
+- 下一步：若要把這兩個 target 從 smoke-level live table 推進到環境常駐 table，應由 DBA / deployment flow 依 `document/sql/260425.sql` 執行，再把 canonical 驗證全面收斂到常駐 entity tables。
+
+## Round 19
+- 本輪延續 `(done)` 階段，但沒有再擴張 runtime contract；只修正 smoke schema source-of-truth 的 drift，讓測試 helper 與正式 SQL artifact 共用同一份 table 定義。
+- 本輪新增共用 helper，讓 `Press` / `Post` 的 smoke 建表邏輯直接從 `document/sql/260425.sql` 擷取對應的 `CREATE TABLE` 語句，不再各自持有第二份 schema 字串。
+- 為了讓 Docker smoke 在 `php-fpm` 容器內也能讀到這份 artifact，本輪同步把 `${DOCU_PATH}` 掛到 `php-fpm:/var/www/document`；這讓 `document/sql` 不再只對 web server 可見，而是成為 smoke runtime 也可直接讀取的 source of truth。
+- 已用 Docker 完成最小重驗：先確認 `php-fpm` 內可讀到 `/var/www/document/sql/260425.sql`，再重跑 `press_seen_reward.php` 與 `post_seen_accumulate_reward.php`；兩者都通過，且仍維持 `press_seen_count = 1 / member_seen_count = 0` 與 `post_seen_count = 3 / member_seen_count = 0`。
+- 這代表目前 `Press` / `Post` 的 smoke-level live table，不只在行為上對齊 entity truth path，也已在 schema 來源上與 `document/sql/260425.sql` 收斂為單一 source of truth。
+- 下一步：若要繼續往前，應回到下一個 runtime slice，而不是再擴大 smoke infra；最自然的方向仍是常駐 entity table rollout，或 achievable / expired filtering 的第一個最小切片。
+
+## Round 20
+- 本輪延續 `(done)` 階段，正式把下一個 runtime drift 收斂到 expired task filtering，但仍只做 completion path 的最小切片，不重開前台 query、schema 或更多 target owner。
+- 本輪在 `kDuty::completeTasksForSeenTarget(...)` 補上第一版 expired gate：當 `claim.task_template.expire_at` 存在且已過期時，未完成 task 會在 factor evaluate 前直接進 `skipped_tasks.reason = task_expired`，不進 done / reward path。
+- 本輪刻意維持既有 seen flow 不變：內容 module 仍先建立或載入本次 seen truth，之後 `Duty` 才依 expired gate 決定 task 是否可繼續 evaluate；因此 expired task 不會回滾本次合法 seen truth，但會保留 `task` 為 `New` 並避免 reward side effect。
+- 本輪新增 canonical smoke suite `www/tests/smoke/seen_target_task_completion/task_expired_skip.php`，驗證過期 task 會回傳單筆 `task_expired` skip、維持 `task.status = New`、`account.balance = 0`，同時 `tbl_press_seen = 1`、`tbl_member_seen = 0`。
+- 已用 Docker 完成驗證：`docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/task_expired_skip.php` 通過；並重跑 `press_seen_reward.php` 確認新增 gate 不影響既有完成與 reward path。
+- 這代表 Stage 3 的第一個 runtime slice 已開始落地，但目前仍只有 completion path 承接 expired contract；前台 task list 與 `pending query` 尚未共用同一套 expired / achievable 判準。
+- 下一步：優先把前台 task list / pending query 向這個 completion-path expired contract 收斂，再決定是否同輪一併承接 achievable filtering。
+
+## Round 21
+- 本輪延續 `(done)` 階段，直接承接 Round 20 的下一步，把 query-side contract 補到與 completion-path expired gate 對齊，但仍不重開 achievable filtering 或新增前台 controller surface。
+- 本輪把 `expire_at` 判準收斂回 `Duty` owner：`fDuty` 現在提供共用的 `loadTaskTemplate(...)` 與 `isTaskTemplateExpired(...)`，讓 claim 解析與過期判斷不再散落在 `Duty` kit 與 `Task` feed 各自維護。
+- 本輪讓 `fTask::pendingByMemberId(...)` 排除已過期 task，但保留 `fTask::byMemberId(...)` 的 raw query 行為不變；這樣 pending query 會與 completion path 使用同一套 expired 判準，同時不影響 `Duty` 目前用來遍歷 `New/Claimed/Done` task 的較寬查詢面。
+- 本輪新增 smoke `www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_expired.php`，驗證 raw pending query 仍可看到 active + expired 兩筆 task，但可見 pending query 只留下 active task。
+- 已用 Docker 完成驗證：`pending_tasks_exclude_expired.php` 通過；並重跑 `task_expired_skip.php` 與 `press_seen_reward.php`，確認 query-side 對齊沒有破壞既有 expired completion path 與正常 reward path。
+- 這代表 Stage 3 的 expired contract 已從 completion path 擴到 pending query；目前剩下的主要 query/runtime drift 已收斂到 achievable filtering，而不是 expired filtering。
+- 下一步：若要繼續最小前進，應把 pending query 與 completion path 再向 achievable / target_unavailable / task_unreachable 的共用判準收斂。
+
+## Round 22
+- 本輪延續 `(done)` 階段，承接 Round 21 的 achievable filtering 方向，但仍只做最小 query/runtime 對齊，不重開更大的 prerequisite 或 unreachable 設計。
+- 本輪把 seen-target availability hook 收斂回 `Duty` owner：`fDuty` 現在提供 `isSeenTargetAvailable(...)`、`listSeenTargets(...)` 與 `hasUnavailableSeenTarget(...)`，讓 query-side 與 completion path 共用同一套 `target_unavailable` fail-closed 判準。
+- 本輪讓 `fTask::pendingByMemberId(...)` 在既有 expired filter 之外，再排除 `task_template.factor` 內已經 `target_unavailable` 的 seen-target task；同時保留 `fTask::byMemberId(...)` 的 raw query 行為不變。
+- 本輪新增 smoke `www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unavailable.php`，驗證 raw pending query 仍保留 unavailable task row，但可見 pending query 會把它排除。
+- 本輪第一次驗證時，helper 沒有遞迴進入 `task_template.factor`，導致 smoke 失敗；其後已以最小修正補上 factor 遞迴入口，重跑同一條 smoke 後通過。
+- 已用 Docker 完成驗證：`pending_tasks_exclude_unavailable.php` 通過；並重跑 `target_hook_unavailable.php` 與 `press_seen_reward.php`，確認共用 helper 不影響既有 fail-closed completion path 與正常 reward path。
+- 這代表 pending query 現在已與 completion path 對齊兩個最小 contract：`task_expired` 與 `target_unavailable`；目前剩下的 query/runtime drift 更聚焦在 `task_unreachable` 或更完整 achievable 規則。
+- 下一步：若要繼續最小前進，應把 pending query 與 completion path 再向 `task_unreachable` 或 prerequisite-based achievable contract 收斂。
