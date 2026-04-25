@@ -105,6 +105,22 @@
 - 不要在 feature 尚未完成前提前撰寫正式 `optimization.md`
 - 不要在尚有重大 drift 時宣告 feature 完成
 
+## 7.1 因框架慣例而重構的條件
+
+- `check` 階段必做一次 convention-refactor 評估，不是想到才做
+- 先按 FORK 分工優先級判斷：第一級違反先修，不能先處理第二級、第三級
+- 第一級：`mh()` 只能在 Feed，transaction 只能由 Feed 持有
+- 第二級：只服務單一 caller、沒有穩定語意邊界的函式應優先收斂
+- 第三級：跨 module 優先只呼叫 Kit / Feed
+- 評估徵兆可包含：框架邊界失效、僅被呼叫一次的函式（不含 smoke test）、過度窄化的 Feed 函式
+- 評估結果只分兩類：必須立即重構，或可延後重構
+- 若 drift 已影響 implementation、review、驗收或下一步承接，判定為必須立即重構
+- 若只是局部徵兆，尚未形成擴散依賴，可先記錄到 `history.md` / `check.md`，不必立刻展開重構
+- 只有在已出現明確 convention drift 時，才把框架慣例重構當成正式工作
+- convention drift 需已影響 implementation、review、驗收或長期維護，不只是風格偏好
+- 重構必須能收斂為局部 resync，不可藉機重開 feature 設計或擴張 scope
+- 若主要前提、runtime gap、或驗收缺口仍未關閉，先完成 feature，再處理框架慣例重構
+
 ## 8. 單次執行最短路徑
 
 1. 先讀相關 `document/` 文件

@@ -441,6 +441,45 @@ F3CMS 的 `check` 不只看功能有沒有動，還要檢查：
 - 是否破壞既有查詢、權限、排序或列表行為
 - 文件是否同步更新
 
+### Convention-refactor 評估點
+
+`check` 階段中，應固定做一次「是否需要因框架慣例而重構」的評估。這不是可有可無的 brainstorming，而是正式 review checkpoint。
+
+目的：
+- 判斷目前 implementation 是否已出現 convention drift
+- 判斷這個 drift 是否已嚴重到必須先做局部重構，才能安全承接下一步或完成驗收
+- 判斷該重構是本輪正式工作，還是應列入後續 `(Optimization)` / next step
+
+典型徵兆包含：
+- 框架邊界失效，例如邏輯放錯層、cross-layer coupling、或其他模組開始跨調不該當成共用 API 的 hook
+- 僅被呼叫一次、且語意只是為了包住單一 caller 而存在的函式，不含 smoke test 這類驗證碼中的輔助函式
+- 過度窄化的 Feed 函式，只服務單一路徑、單一畫面或單一 workaround，導致查詢能力無法自然重用
+
+### FORK 分工優先級
+
+評估 convention-refactor 時，應先按 FORK 分工優先級判斷，而不是把所有徵兆視為同等級。
+
+- 第一級：必須符合。例如 `mh()` 只能出現在 Feed，transaction begin / commit / rollback 只能由 Feed 持有
+- 第二級：應優先收斂。例如只服務單一 caller、沒有穩定語意邊界的函式
+- 第三級：結構偏好。例如跨 module 優先只呼叫 Kit / Feed，而不是把別人的 Reaction / Outfit 當共用 API
+
+判斷規則：
+- 只要第一級違反，該輪就應優先修正第一級，不應先討論第二級或第三級美化
+- 第二級、第三級只能在高優先級規則已成立後，再判斷是否本輪處理
+
+評估結果只分兩類：
+- 必須立即重構：若 drift 已影響目前 implementation、review、驗收或下一步承接，且不處理會持續擴散
+- 可延後重構：若徵兆已存在，但目前仍可安全完成 feature，且不會立刻污染下一步邊界
+
+判斷規則：
+- 若錯的邊界已開始被第二個 caller、第二條流程或下一步設計重複依賴，通常應判定為必須立即重構
+- 若只是局部命名不佳、單一函式尚未形成擴散依賴，則可先記錄於 `history.md` 或 `check.md`，待後續收斂
+- 若主要 runtime gap、驗收缺口或功能前提尚未補齊，除非 drift 已阻塞當前工作，否則先完成 feature 主線
+
+文件落點：
+- 本輪若判定「必須立即重構」，應把原因、範圍與驗證方式寫進 `history.md`，必要時同步更新 `plan.md`
+- 本輪若判定「可延後重構」，也應把徵兆與延後理由記錄在 `history.md` 或 `check.md`，不能只留在對話中
+
 可參考：
 - [guides/pr_review_checklist.md](guides/pr_review_checklist.md)
 - [guides/data_architecture_checklist.md](guides/data_architecture_checklist.md)
@@ -465,6 +504,25 @@ F3CMS 的 `check` 不只看功能有沒有動，還要檢查：
 - 在 `optimization.md` 補上未來可能的改善方向
 - 視需要將 `document/spec/<feature>/` 移動到封存區
 - 在封存前，先將 `history.md` 壓縮為可承接與可追蹤的最終摘要版本
+
+### 因框架慣例而重構的發生條件
+
+F3CMS 是 convention-driven 架構，因此有些重構不是為了「漂亮」，而是為了把實作重新對齊框架責任邊界。
+
+只有在下列條件成立時，才應把「框架慣例重構」當成當輪正式工作：
+- 已出現明確的 convention drift，例如邏輯放錯層、命名已不再表達實際責任、或多個 caller 正在跨調不該作為共用 API 的 hook
+- 這個 drift 已開始影響下一步 implementation、review、驗收或長期維護，而不是單純審美問題
+- 重構範圍可收斂為局部 resync，不需要藉機重開 feature 設計或擴大 scope
+- 可以用既有驗證方式證明行為不變，或至少可用 focused review 清楚界定風險
+
+不應發生的情況：
+- feature 的主要前提、驗收或 runtime gap 尚未補齊時，只因「框架看起來比較漂亮」就擴張重構
+- 把新慣例當成理由，重做一整層命名或結構，但無法指出具體 drift 與承接收益
+- 在沒有穩定 caller、穩定語意、或明確痛點前，過早抽象 presenter / helper / adapter
+
+實務判準：
+- 若重構是為了恢復 F3CMS 分層語意、消除 cross-layer coupling、或收斂穩定共用 pattern，屬於有效的 convention-driven refactor
+- 若重構只是讓名稱更順眼、但不影響責任邊界、承接成本或驗收品質，則應延後或不做
 
 ## AI 協作要點
 

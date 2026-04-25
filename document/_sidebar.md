@@ -13,6 +13,7 @@
     - [TestMode Development Guide](guides/testmode_development_guide.md)
     - [SA Requirement Breakdown](guides/sa_requirement_breakdown.md)
     - [Data Modeling](guides/data_modeling.md)
+    - [LLM DBA Guide](guides/llm_dba_guide.md)
     - [Module Design](guides/module_design.md)
     - [SD Conventions](guides/sd_conventions.md)
   - Implementation

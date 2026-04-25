@@ -125,6 +125,18 @@ tests_smoke_run(function () {
             throw new \RuntimeException('Expected repeat rPress seen completion to stay idempotent.');
         }
 
+        if (0 !== count($first['short_circuited_tasks'] ?? [])) {
+            throw new \RuntimeException('Expected first rPress seen completion to avoid short-circuit results before task completion.');
+        }
+
+        if (1 !== count($second['short_circuited_tasks'] ?? [])) {
+            throw new \RuntimeException('Expected repeat rPress seen completion to report exactly one already_completed short-circuit task.');
+        }
+
+        if ('already_completed' !== (($second['short_circuited_tasks'][0]['reason'] ?? null))) {
+            throw new \RuntimeException('Expected repeat rPress short-circuit reason to be already_completed.');
+        }
+
         if (empty($first['seen']['_created']) || !empty($second['seen']['_created'])) {
             throw new \RuntimeException('Expected member_seen truth to be created once and reused across rPress requests.');
         }

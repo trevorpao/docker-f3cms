@@ -85,6 +85,8 @@ Strong indicators include:
 
 If the requirement introduces new table-backed business logic, that logic must live under the owning module rather than being placed in `libs`. Shared libraries are for cross-module infrastructure or truly generic helpers, not for owning entity persistence, workflow state, or audit behavior.
 
+更直接的判準是：只有在邏輯不涉及特定實體操作時，才應放進 `libs`。只要已牽涉 entity truth、payload ownership、workflow / duty 判讀、task writeback、audit trail，或其他 module-owned business coordination，就應回到 owning module，而不是以可共用為理由移進 `libs`。
+
 Examples of entities that clearly justify modules:
 - Post
 - Press
@@ -155,6 +157,7 @@ Feed is responsible for:
 - metadata and language save behavior
 - relation save behavior
 - query defaults and filters
+- direct `mh()` access and transaction control for module-owned writes
 
 Feed should not become:
 - a page renderer
@@ -176,6 +179,7 @@ Reaction should not become:
 - the primary home of data logic
 - a place where raw SQL is duplicated across actions
 - the long-term storage model definition
+- the place that directly calls `mh()` or owns transaction begin / commit / rollback
 
 ### Outfit
 
@@ -209,18 +213,47 @@ Practical rule:
 - if logic is owned by one module's business rules, keep it in that module's Kit even when other modules need to call it
 - if logic is infrastructural, generic, or not owned by one module, move it to helpers or `libs`
 
+## FORK 分工優先級
+
+在 F3CMS 中，不同重構徵兆的優先級不同。高優先級規則一旦違反，必須先修正，不能用較低優先級的改善理由覆蓋。
+
+### 第一級：必須符合
+- `mh()` 的呼叫只能放在 Feed
+- transaction begin / commit / rollback 只能由 Feed 持有
+- table-backed persistence 與 module-owned log write 必須落在 Feed
+
+### 第二級：應優先收斂
+- 不要新增只服務單一 caller、且沒有穩定語意邊界的函式
+- 若某函式只是把單一路徑包一層名字，應優先內聚回主流程或提升為真正的 module-owned helper
+
+### 第三級：結構偏好
+- 跨 module 呼叫時，優先只依賴對方的 Kit 或 Feed
+- 避免跨調另一個 module 的 Reaction / Outfit 或把它們當 reusable API
+
+判斷順序：
+- 先看第一級是否違反
+- 第一級未違反，再看第二級是否值得收斂
+- 前兩級都穩定後，再處理第三級的結構優化
+
+Presentation transform rule:
+- if multiple modules need the same row-decoration or response-shaping logic for one entity, do not cross-call another module's Reaction hook such as `handleIteratee()` or `handleRow()`
+- instead, move the stable transform into that entity's module-owned helper or presenter, for example `kPress::decorateListRow()` / `decorateDetailRow()`, and let each Reaction delegate to it
+- this keeps Reaction as the transport-facing layer while preserving one clear owner for the response shape of that entity
+
 ## WorkflowEngine Integration Pattern
 
 When a module needs workflow judgment, WorkflowEngine should be treated as a shared library under `libs/`, not as a new module or a shared persistence owner.
 
 ### Stable Rules
 
+- `libs` 只承接 shared runtime / parser / evaluator / generic infrastructure，不承接特定實體操作
 - module owns the business entity, workflow definition source, and workflow audit persistence
 - WorkflowEngine owns workflow rule evaluation only
 - Feed persists business rows and module-owned log rows, but does not become the place where workflow rules are invented
-- Reaction handles action requests and coordinates transaction boundaries
+- Reaction handles action requests and delegates transaction-backed writes to Feed
 - Outfit may ask WorkflowEngine for display-facing projection such as current stage or available actions
 - Kit may wrap module-owned workflow helpers for reuse by other modules, but should not replace WorkflowEngine itself
+- if workflow coordination starts to own entity state, duty judgment, task writeback, payload source, or audit persistence, keep that part in the owning module instead of expanding `libs`
 
 ### What Not To Do
 
@@ -251,7 +284,7 @@ To keep modules coherent, each layer should communicate in predictable ways.
 - Reaction loads the target workflow JSON from the module's chosen source.
 - Reaction assembles runtime context from the entity's current state and operator context.
 - Reaction asks WorkflowEngine whether the requested action is allowed before writing business data.
-- Reaction keeps module-owned workflow log writes and business-row updates inside the same transaction when audit consistency matters.
+- Reaction delegates module-owned workflow log writes and business-row updates to Feed methods that keep them inside the same transaction when audit consistency matters.
 
 ### Outfit to Feed
 - Outfit resolves route or page context.

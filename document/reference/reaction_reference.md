@@ -111,11 +111,12 @@ Recommended sequence:
 2. load the workflow JSON from the module's chosen definition source
 3. build runtime context from current state, stage, operator role, and any required trace data
 4. call WorkflowEngine for `validateDefinition()`, `project()`, `canTransit()`, or `transit()` as needed
-5. if the action is accepted, write the module-owned workflow log and business-row update within the same transaction when consistency matters
+5. if the action is accepted, delegate the module-owned workflow log and business-row update to a Feed method that writes them within the same transaction when consistency matters
 6. return through `_return()` as usual
 
 Boundaries to keep clear:
 - Reaction may coordinate workflow actions, but should not become the long-term owner of workflow schema design
+- Reaction should not call `mh()` directly; direct DB access and transaction control belong to Feed
 - Feed persists entity data and log rows, but should not absorb generic workflow rule evaluation
 - old WorkflowEngine instance persistence entry points should be treated as retired APIs, not as recommended Reaction integration hooks
 
@@ -140,13 +141,37 @@ Concrete F3CMS example:
 - the actual `member_seen` truth row remains member-owned, while task completion and reward writeback remain duty / task / manaccount-owned side effects
 
 ## 擴充掛點
+
+這幾支常被一起提到，但概念上應分成三層，而不是都視為同一種「response hook」。
+
+### 1. Input Normalization Hook
 | 方法 | 時機 | 用途 |
 | --- | --- | --- |
 | `beforeSave(array $params)` | `do_save()` 寫入前 | 正規化輸入、補預設值、拆解複合欄位。預設直接回傳原資料。|
-| `handleIteratee(array $row)` | `do_list()` 每筆資料 | 針對列表畫面需要的額外欄位（例：狀態換 label、串關聯資料）。|
-| `handleRow(array $row)` | `do_get()` 取單筆後 | 格式化單筆資料，例如塞入 `Feed::oneOpt()` 結果或重組 JSON 欄位。|
 
-> 建議：在自訂 Reaction 類別中覆寫上述方法，以保持 `do_*` 流程簡潔並專注在權限/流程控制。
+使用邊界：
+- 可做欄位正規化、預設值補齊、型別整理與 save 前的輸入重組
+- 若 normalization 需要穩定 lookup，可發生資料庫讀取
+- 不應在這裡做跨 module 協調
+- 不應在這裡決定 workflow / event side effect
+
+### 2. Response Transform Hooks
+| 方法 | 時機 | 用途 |
+| --- | --- | --- |
+| `handleIteratee(array $row)` | `do_list()` 每筆資料 | 將列表 row 轉成 API / 後台列表需要的輸出 shape。|
+| `handleRow(array $row)` | `do_get()` 取單筆後 | 將 detail row 轉成單筆 API / 表單需要的輸出 shape。|
+
+使用邊界：
+- 這兩支是 row-level response transform hook，不是業務協調入口
+- 適合做顯示層級欄位整形、label 補齊、輕量結構重組
+- 若同一個 transform 被多個 module 重複使用，應抽到 module-owned helper，例如 `kPress::decorateListRow()`、`kPress::decorateDetailRow()`，再由各自的 Reaction hook 委派
+- 不建議直接跨調另一個 Reaction 的 `handleIteratee()` 或 `handleRow()` 當共用 formatter
+
+### 3. Response Emitter
+- `_return($code, $data = [])` 不是一般 hook，而是統一 response envelope 與 transport 的 terminal API
+- 它負責 `code / data / csrf`、JSON / JSONP 輸出與 response 終止，不應與 row transform hook 混為同類
+
+> 建議：在自訂 Reaction 類別中覆寫 `beforeSave / handleIteratee / handleRow` 以保持 `do_*` 流程簡潔；若 transform 已跨多個 caller 穩定共用，應提升為 module-owned presenter/helper，而不是讓 Reaction 彼此互相依賴。
 
 ## 輔助工具
 - **`_parseBackendQuery($query)`**：把後台 query string（`a=1&b=2`）轉成 `Feed::genFilter()` 可用的陣列，並將 `=`→`:`、`&`→`,`。
@@ -157,15 +182,18 @@ Concrete F3CMS example:
 ## 實作建議
 1. **集中權限檢查**：所有 `do_*` 方法在進入核心邏輯前應呼叫 `chkAuth()` 與必要的 `kStaff::_chkLogin()`，確保與 Feed 權限旗標一致。
 2. **永遠回傳標準格式**：避免直接 `echo json_encode()`，統一走 `_return()` 以免遺漏 CSRF 更新或 JSONP 判斷。
-3. **共用掛點**：盡量在覆寫 `beforeSave / handleIteratee / handleRow` 處理欄位轉換，不要把大量資料整形塞入 `do_*` 主流程。
+3. **共用掛點**：盡量在覆寫 `beforeSave / handleIteratee / handleRow` 處理欄位轉換，不要把大量資料整形塞入 `do_*` 主流程；但若 transform 已被多個 module 重用，應抽到 module-owned helper，而不是直接跨調另一個 Reaction 的 hook。
 4. **前後端命名同步**：沿用 [../guides/create_new_module.md](../guides/create_new_module.md) 的命名規範，保持 API/DB 欄位一致，降低資料映射複雜度。
-5. **與 Feed 協作**：若需要額外查詢條件或輸出欄位，優先擴充 Feed（例如新增 `genFilter`、`limitRows` 支援），Reaction 僅負責組合條件與輸出。
+5. **與 Feed 協作**：若需要額外查詢條件、輸出欄位、DB write 或 transaction，優先擴充 Feed；Reaction 僅負責組合條件、workflow judgment 與輸出。
 
 ## 常見踩雷
 - 把資料驗證、查詢拼裝或商業規則大量塞進 `do_*`：這會讓 Reaction 變胖，也會破壞與 Feed 的責任分工。
+- 在 Reaction 中直接呼叫 `mh()`：這違反第一級 FORK 分工；直接 DB access 與 transaction 應回到 Feed。
 - 直接輸出 JSON 而不走 `_return()`：容易漏掉 CSRF 更新、JSONP 處理與統一回傳格式。
 - 忘記先做 `chkAuth()` 或 `kStaff::_chkLogin()`：功能能跑不代表權限正確，這類遺漏通常會在上線後才暴露。
-- 在 `handleIteratee()` 或 `handleRow()` 做過重查詢：若需要複雜資料組合，優先回 Feed 補查詢支援。
+- 在 `handleIteratee()` 或 `handleRow()` 做過重查詢：若需要複雜資料組合，優先回 Feed 補查詢支援，或抽到 module-owned presenter/helper。
+- 把 `beforeSave()` 當成 side effect orchestration 入口：它可以做 normalization，甚至可包含必要 lookup，但不應在這裡協調跨 module 流程或決定 workflow / event side effect。
+- 直接跨調另一個 Reaction 的 `handleIteratee()` / `handleRow()`：這通常表示 stable response transform 已超出單一 hook 的範圍，應改抽到 module-owned presenter/helper。
 
 以上內容涵蓋 Reaction 層最常被覆寫與呼叫的方法。若模組需要自訂流程，可在 `r{Module}` 中延伸 `do_*` 方法並透過本指南掌握既有行為。
 

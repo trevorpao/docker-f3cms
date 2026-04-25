@@ -60,6 +60,7 @@ If the question is:
 - how to transplant FDD into another project, start from `fdd_porting_guide.md`
 - how to break requirements into modules, start from `sa_requirement_breakdown.md`
 - how to design schema and table structure, start from `data_modeling.md`
+- how to act as DBA or prepare schema decisions as an LLM, start from `llm_dba_guide.md`
 - how to decide whether a new module is needed, start from `module_design.md`
 - how Feed should save, read, or join data, start from `feed_guide.md`
 - how to write code in a convention-aligned way, start from `sd_conventions.md`
@@ -120,6 +121,11 @@ This section describes what each document is for and when it should be opened.
 - Primary source for entity-first schema design.
 - Use when deciding main tables, `_lang`, `_meta`, relation tables, and field placement.
 - Read before writing SQL, Feed constants, or save flows.
+
+#### [llm_dba_guide.md](llm_dba_guide.md)
+- DBA-oriented consolidation guide for LLMs.
+- Use when the task is to review, design, challenge, or deliver schema changes with enough precision to act as DBA.
+- Read before producing DDL, migration rationale, or table-placement arbitration.
 
 #### [module_design.md](module_design.md)
 - Primary source for mapping entities into modules and splitting responsibilities.
@@ -218,6 +224,17 @@ This path is for requirement decomposition, scope control, and handoff quality.
 1. [overall.md](overall.md)
 2. [idea_md_writing_guide.md](idea_md_writing_guide.md)
 3. [idea_md_role_examples.md](idea_md_role_examples.md)
+
+### For LLM DBA
+1. [data_modeling.md](data_modeling.md)
+2. [llm_dba_guide.md](llm_dba_guide.md)
+3. [module_design.md](module_design.md)
+4. [sd_conventions.md](sd_conventions.md)
+5. [query_and_performance.md](query_and_performance.md)
+6. [data_architecture_checklist.md](data_architecture_checklist.md)
+7. [document/sql/init.sql](../sql/init.sql)
+
+This path is for schema arbitration, DDL preparation, migration review, and database-oriented design challenge.
 4. [data_modeling.md](data_modeling.md)
 5. [module_design.md](module_design.md)
 6. [sd_conventions.md](sd_conventions.md)
