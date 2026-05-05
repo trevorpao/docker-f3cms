@@ -13,6 +13,18 @@
 - For `document/spec/<feature>/`, read `history.md` first, then `plan.md` and `check.md`; only return to `idea.md` if earlier stages are incomplete or invalidated.
 - For `idea.md`, prefer example/scenario-driven convergence over abstract prose. Require at least one mainline scenario; add a boundary or counter-example when scope edges matter.
 
+## FORK Maintenance Priority
+- Treat FORK maintainability as a repo-level decision rule, not as an optional preference.
+- When convenience conflicts with future upstream sync, diff readability, owner-boundary clarity, or rollback safety, choose the option that keeps the FORK easier to maintain.
+- Use `document/guides/` as the source of truth for this judgment. In particular:
+	1. `document/guides/fdd_porting_guide.md` for the rule that workspace-level instructions must preserve stable LLM behavior across future handoffs.
+	2. `document/guides/llm_dba_guide.md` for ownership-first reasoning and the rule that convenience-oriented shortcuts must not override long-term structure.
+	3. `document/guides/sd_conventions.md` for module boundary rules, especially that entity-specific logic stays module-owned and should not be pushed into generic helpers or `libs` just because it is convenient.
+- Prefer module-owned boundaries, stable interfaces, and explicit data flow over project-specific shortcuts that increase coupling.
+- Avoid introducing or expanding dependencies on project-specific global helpers such as `mh()` or similar convenience entry points when a lower-coupling owner-side path exists.
+- For module `Kit` / `Feed` / `Reaction` decisions, preserve owner boundaries first; do not optimize for the shortest local wiring if that makes later FORK maintenance harder.
+- If a proposed change is locally convenient but creates extra FORK-only coupling, stop and either choose the lower-coupling design or explicitly tell the user about the tradeoff before implementing.
+
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
