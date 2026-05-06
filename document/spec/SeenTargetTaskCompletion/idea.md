@@ -96,12 +96,13 @@
 - `seen`：本次使用的 `{entity}_seen` truth reference
 - `completed_tasks`：本次因 evaluate 而完成的 task 清單
 - `short_circuited_tasks`：因 task 已完成而被略過的 task 清單
-- `skipped_tasks`：因 target unavailable、task expired、task unreachable 或 factor not matched 而未完成的 task 清單
+- `skipped_tasks`：因 target unavailable、task expired、generic unreachable 或 factor not matched 而未完成的 task 清單
 
 其中：
 - `completed_tasks` 至少包含 `task_id`、`duty_id`、`status`、`reward_action_code`、`reward_amount`
 - `short_circuited_tasks` 至少包含 `task_id` 與 `reason = already_completed`
 - `skipped_tasks` 至少包含 `task_id`、`reason`；第一版 reason 可接受 `target_unavailable`、`task_expired`、`task_unreachable`、`factor_not_matched`
+- 補充：`task_unreachable` 在後續 current spec 中保留作為 generic unreachable vocabulary；若 skip 來源是 `task_template.prerequisite`，應再細分為 prerequisite-specific reason，而不是沿用泛稱。
 
 #### 3. `{entity}_seen` truth reference contract
 
@@ -251,7 +252,7 @@ feed 不應承接：
 
 1. 先篩掉已完成 task，直接進 `short_circuited_tasks`
 2. 再篩掉 expired task，進 `skipped_tasks.reason = task_expired`
-3. 再做 target hook / achievable 檢查，不成立則進 `skipped_tasks.reason = target_unavailable` 或 `task_unreachable`
+3. 再做 target hook / achievable 檢查，不成立則進 `skipped_tasks.reason = target_unavailable` 或 generic unreachable 類型 reason
 4. 最後才進 EventRuleEngine factor evaluate；未命中則進 `skipped_tasks.reason = factor_not_matched`
 5. 只有通過以上所有條件的 task，才可進入 done / reward path
 
@@ -277,7 +278,7 @@ feed 不應承接：
 
 - 不出現在前台可達成任務清單
 - 不進 done / reward path
-- 可進 `skipped_tasks` 留下 `task_unreachable` 或 `target_unavailable` reason
+- 可進 `skipped_tasks` 留下 generic unreachable 或 `target_unavailable` reason；若來源是 prerequisite，則應使用 prerequisite-specific reason
 - 是否需要後續額外標記資料表狀態，不在第一版範圍內
 
 #### 6. Post 多篇累積規則

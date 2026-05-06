@@ -106,6 +106,41 @@
 	- `fTask::pendingByMemberId(...)` 現在也會排除已經 `target_unavailable` 的 seen-target task
 	- `fTask::byMemberId(...)` 仍維持 raw query 行為，供較寬的 orchestration path 使用
 	- `www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unavailable.php` 已建立並通過 Docker 驗證
+- prerequisite-based achievable filtering 的第一個 runtime slice 已完成：
+	- `fDuty` 現在提供 `loadTaskPrerequisite(...)` 與 `hasUnmetTaskPrerequisite(...)`
+	- prerequisite 第一版 runtime shape 已落成 `task_template.prerequisite.operator + tasks[*].duty_slug + expected_status`
+	- `fTask::pendingByMemberId(...)` 現在會排除 unmet prerequisite task，與 completion path 共用同一條 `Duty` owner gate
+	- `kDuty::completeTasksForSeenTarget(...)` 現在會把 prerequisite 失敗收斂到 owner-side reason code，而不再只寫死單一 `task_unreachable`
+	- `www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unmet_prerequisite.php` 已建立並通過 Docker 驗證
+- prerequisite shape 的第二個 runtime slice 已完成：
+	- `fDuty` 現在正式支援 `AND` 與 `OR` 兩種 prerequisite operator
+	- dependency identifier 已從只有 `duty_slug` 擴成 `duty_slug | task_template_slug`
+	- `fDuty::oneByTaskTemplateSlug(...)` 已補上 `task_template_slug` 的 owner-side resolve path，避免把第二個 identifier 變成 query / smoke 專用捷徑
+	- `www/tests/smoke/seen_target_task_completion/prerequisite_or_task_template_slug.php` 已建立並通過 Docker 驗證，確認 OR prerequisite 在 dependency 滿足前不顯示、滿足後恢復可見，且 completion path 可正常完成 dependent task
+- prerequisite matrix 的 canonical smoke coverage 已補齊四角：
+	- `www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unmet_prerequisite.php` 覆蓋 `AND + duty_slug`
+	- `www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unmet_prerequisite_task_template_slug.php` 覆蓋 `AND + task_template_slug`
+	- `www/tests/smoke/seen_target_task_completion/prerequisite_or_duty_slug.php` 覆蓋 `OR + duty_slug`
+	- `www/tests/smoke/seen_target_task_completion/prerequisite_or_task_template_slug.php` 覆蓋 `OR + task_template_slug`
+	- 因此目前 prerequisite 的 `operator x identifier` matrix 已有獨立 smoke，而不再只靠混合案例間接覆蓋
+- prerequisite 的 fail-open non-happy-path contract 已開始有獨立 smoke：
+	- `www/tests/smoke/seen_target_task_completion/prerequisite_unknown_operator_fail_open.php` 驗證 unknown `operator` 不會錯誤隱藏 dependent task，也不會阻止 dependent completion / reward
+	- `www/tests/smoke/seen_target_task_completion/prerequisite_invalid_dependency_fail_open.php` 驗證 invalid dependency payload 不會錯誤隱藏 dependent task，也不會阻止 dependent completion / reward
+	- 因此目前 prerequisite 的 fail-open 邊界不再只停留在 helper 內隱式 return false，而已有 Docker smoke 證據
+- prerequisite 的 unresolvable dependency contract 已補上獨立 smoke，且本輪順便修掉一個程式 / 文件 drift：
+	- 原本 code 會把 resolve 不到 duty 的 dependency 當成 fail-open；這與文件長期描述的 prerequisite unreachable contract 不一致
+	- `fDuty::resolveTaskPrerequisiteDuty(...)` 現在已把「identifier 存在但 resolve 不到 duty」改收斂成 unmet prerequisite，而不是 `null`
+	- `www/tests/smoke/seen_target_task_completion/prerequisite_unresolvable_dependency.php` 已建立並通過 Docker 驗證，確認 unresolved `duty_slug` 會在 pending query 隱藏 dependent task，並在 completion path 上回傳 prerequisite unreachable 類型 reason
+	- 同時既有 `prerequisite_unknown_operator_fail_open.php` 與 `prerequisite_invalid_dependency_fail_open.php` 已重跑通過，確認 drift fix 沒有打壞 fail-open contract
+	- `www/tests/smoke/seen_target_task_completion/prerequisite_unresolvable_task_template_slug.php` 已建立並通過 Docker 驗證，確認 unresolved `task_template_slug` 與 unresolved `duty_slug` 一樣都會收斂到 prerequisite unreachable 類型 reason
+	- 因此 prerequisite 的 fail-closed / unreachable 邊界現在也已形成 `duty_slug | task_template_slug` 的 identifier matrix，而不只是一條單邊證據
+- prerequisite-specific reason code 已正式落地：
+	- `prerequisite_unmet` 用於 dependency 已 resolve 但 `expected_status` 尚未成立
+	- `prerequisite_unresolvable` 用於 dependency identifier 已提供但無法 resolve 到 duty，或 member 缺少 dependency task row
+	- 既有 fail-open contract 不變：unknown `operator` 與 invalid dependency payload 不會產生任何 prerequisite-specific reason
+- `factor_not_matched` 這條 non-prerequisite achievable 邊界也已補上直接 smoke：
+	- `www/tests/smoke/seen_target_task_completion/factor_not_matched_keeps_pending_visible.php` 驗證會員先看到不相符的合法 target 時，系統仍會建立對應 `press_seen` truth，但 task 維持 `New`、reward 不寫入、completion path 回傳 `factor_not_matched`，而 pending query 仍保留該 task 可見
+	- 因此 `factor_not_matched` 現在不再只停留在累積型 `Post` scenario 的間接 evidence，而已有單點、直接的 Docker smoke 證據
 
 ## 驗證狀態
 - 已有第一個可採信的 current-spec runtime slice 驗證結果，但仍屬 legacy baseline 路徑。
@@ -140,6 +175,16 @@
 	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unavailable.php`（pending query 排除 target_unavailable task 驗證）
 	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/target_hook_unavailable.php`（共用 availability helper 後回歸驗證）
 	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/press_seen_reward.php`（共用 availability helper 後回歸驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unmet_prerequisite.php`（v1 `AND + duty_slug` prerequisite gate 驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unmet_prerequisite_task_template_slug.php`（`AND + task_template_slug` prerequisite gate 驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/prerequisite_or_duty_slug.php`（`OR + duty_slug` prerequisite gate 驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/prerequisite_or_task_template_slug.php`（v2 `OR + task_template_slug` prerequisite gate 驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/prerequisite_unknown_operator_fail_open.php`（unknown prerequisite operator 的 fail-open 驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/prerequisite_invalid_dependency_fail_open.php`（invalid prerequisite dependency payload 的 fail-open 驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/prerequisite_unresolvable_dependency.php`（unresolvable `duty_slug` 會收斂到 `prerequisite_unresolvable` 的驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/prerequisite_unresolvable_task_template_slug.php`（unresolvable `task_template_slug` 會收斂到 `prerequisite_unresolvable` 的驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/factor_not_matched_keeps_pending_visible.php`（合法但不相符的 seen 會回傳 `factor_not_matched`，且 pending query 仍保留 task 的驗證）
+	- `docker compose exec -T php-fpm php /var/www/tests/smoke/seen_target_task_completion/press_seen_reward.php`（v2 prerequisite 擴充後回歸驗證）
 
 ## 待驗收情境
 - `Press` seen 成功建立對應 `{entity}_seen`，並完成單篇任務。
@@ -148,8 +193,19 @@
 - 已完成 task 的重複 seen API 會 short-circuit，不重複發點。
 - 單一 feed transaction 與跨 feed transaction 在資料一致性上的行為符合 spec。
 - expired task 不出現在前台可達成任務清單中，且前台 query 要與 completion path 的 `task_expired` gate 共用同一套判準。
-- `target_unavailable` 的前台 query 已開始與 completion path 對齊；`task_unreachable` 與更完整 achievable 的 query contract 仍需共用判準。
+- `target_unavailable` 的前台 query 已開始與 completion path 對齊；prerequisite 相關 skip reason 已細分，但更完整 achievable 的 query contract 仍需共用判準。
 
 ## 目前判定
-- 目前 feature 已進入 `(done)`，但距離 `check` 完成或 `(Optimization)` 仍有明顯差距。
-- 下一步應沿既有 implementation momentum，優先把 pending query / 前台 task list 向 `task_unreachable` 或 prerequisite-based achievable filtering 收斂，再視結果決定是否需要更大的 query abstraction。
+- 目前 feature 已完成 `(done)` 階段的核心 implementation 與驗證，並已具備進入 `(Optimization)` 的最低條件。
+- 目前已把 prerequisite runtime source 收斂到 `claim.task_template.prerequisite`；因此原本「完全沒有 prerequisite carrier」的 drift 已縮小。
+- `task_template.prerequisite` 已從第一版的 `operator + tasks[*].duty_slug + expected_status` 擴到第二版的 `AND | OR + duty_slug | task_template_slug + expected_status`，因此「沒有 prerequisite shape」這個 drift 已進一步縮小。
+- 目前這條 prerequisite gate 已落成共用 helper 與 v1 / v2 canonical smoke；因此原本 query/runtime 未共用 prerequisite contract 的 drift 已關閉。
+- 目前 prerequisite 的 non-happy-path contract 已同時具備 fail-open 與 fail-closed / unreachable 的 Docker 證據：unknown operator / invalid payload 維持 fail-open；unresolvable dependency 收斂到 `prerequisite_unresolvable`。
+- 目前 prerequisite 的 smoke 密度與 reason 粒度都已不再是主要缺口；泛稱 `task_unreachable` 已決定保留給未來非-prerequisite unreachable path，但 prerequisite validation artifact 已改用與現行 runtime 一致的命名；因此在此之前，不需要重開新的 prerequisite data source。
+- 泛稱 `task_unreachable` 的名詞決策已完成：
+	- `task_unreachable` 保留給未來非-prerequisite unreachable path 的 generic reason 名稱
+	- prerequisite domain 已正式改用 `prerequisite_unmet` / `prerequisite_unresolvable`
+	- 因此目前 current spec 中，`task_unreachable` 不再代表 prerequisite runtime 的現行輸出，而是 reserved generic vocabulary
+- 目前進一步確認：current runtime 內沒有任何非-prerequisite path 在輸出 generic `task_unreachable`，因此這個名稱目前僅保留在 vocabulary / future-contract 層，而不是當前 implementation gap。
+- 目前 prerequisite 的 smoke 密度、reason 粒度與 generic-term 決策都已不再是主要缺口，而 `factor_not_matched` 也已補上直接 evidence；目前已知、已落 runtime 的 achievable 邊界都已有可採信證據。在再識別出新的實際邊界或 optimization 缺口前，不需要重開新的 prerequisite data source，也不需要為 `task_unreachable` 人為造出一條 runtime path。
+- 因此 current spec 現在應把後續工作視為 retrospective / closeout：把穩定規則回填 shared docs，並在沒有新 evidence 的前提下準備 archive，而不是繼續擴 implementation scope。

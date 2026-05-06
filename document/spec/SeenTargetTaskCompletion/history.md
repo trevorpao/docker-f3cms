@@ -178,3 +178,159 @@
 - 已用 Docker 完成驗證：`pending_tasks_exclude_unavailable.php` 通過；並重跑 `target_hook_unavailable.php` 與 `press_seen_reward.php`，確認共用 helper 不影響既有 fail-closed completion path 與正常 reward path。
 - 這代表 pending query 現在已與 completion path 對齊兩個最小 contract：`task_expired` 與 `target_unavailable`；目前剩下的 query/runtime drift 更聚焦在 `task_unreachable` 或更完整 achievable 規則。
 - 下一步：若要繼續最小前進，應把 pending query 與 completion path 再向 `task_unreachable` 或 prerequisite-based achievable contract 收斂。
+
+## Round 23
+- 本輪依 `FDD Sprint` 先做 history-first 承接與 drift 檢查，沒有直接展開 code 變更。
+- 目前 `history.md`、`plan.md`、`check.md` 對 stage 的判定仍一致，spec 仍停在 `(done)`；沒有出現需要回退到 `idea` 或 `(discuss)` 的大方向漂移。
+- 但本輪確認了一個更具體的 implementation drift：文件已把下一步收斂到 `task_unreachable` 或 prerequisite-based achievable filtering，可是目前 runtime 只存在 `task_expired` 與 `target_unavailable` 兩個已穩定的 gate，尚未出現可直接承接的 prerequisite runtime carrier。
+- 換句話說，若本輪直接在 code 中硬做 `task_unreachable`，實際上會把「prerequisite 存在哪裡、如何判斷不可滿足」重新打開成隱含設計，這不符合 `(done)` 階段的最小切片原則。
+- 因此本輪把最小下一步重新收斂為：先明確 prerequisite-based achievable contract 的第一個 runtime 來源，再決定是由 `fDuty` 補 helper、還是由 `task_template` 內既有 payload 提供最小可判斷欄位。
+- 在這個前提釐清前，`task_unreachable` 仍只停留在 spec reason code 與 query / completion contract 描述，尚不適合直接落 code。
+- 下一步：先把 prerequisite runtime source 收斂成一個不重開 schema 的最小 contract，再沿 `fTask::pendingByMemberId(...)` 與 `kDuty::completeTasksForSeenTarget(...)` 做 query/runtime 對齊切片。
+
+## Round 24
+- 本輪延續 `(done)` 階段，仍維持最小切片，沒有直接展開 runtime code。
+- 本輪先用現有 smoke payload 反查可承接 prerequisite 的最小載體；結果確認目前 `seen_target_task_completion/*` suite 的 claim payload 都已穩定掛在 `task_template` 下，並已實際承載 `factor`、`expire_at`、`reward` 等欄位。
+- 因此本輪把 prerequisite-based achievable contract 的第一個 runtime carrier 收斂為 `claim.task_template.prerequisite`，而不是另開 schema、task row 欄位或 generic progress table。
+- 這個收斂的目的不是直接定稿 prerequisite 全語意，而是先確保下一輪若進入 implementation，query 與 completion path 都有同一個 owner-side payload 入口可讀，不需要再臨時發明第二條資料來源。
+- 第一版 fallback 也一併收斂：若 `task_template.prerequisite` 缺省、為空或不是可判斷 payload，則 prerequisite 維度預設為可達成，不額外產生 `task_unreachable`。
+- 這代表目前的局部 drift 已從「缺少 prerequisite runtime source」縮小為「如何在既有 `task_template` payload 內定義第一個最小 prerequisite shape」；下一步可以在不重開 schema 的前提下，決定是否先由 `fDuty` 補讀取 helper，再落第一條 query/runtime 對齊切片。
+- 下一步：先把 `task_template.prerequisite` 的第一版 shape 與 fail-open / fail-closed 邊界寫清楚，再決定是否直接落 `fDuty` helper 與對應 smoke。
+
+## Round 25
+- 本輪延續 `(done)` 階段，仍維持文件先收斂、code 後落地的最小路徑。
+- 本輪確認 prerequisite 的第一版 runtime identifier 應優先使用 `duty_slug`，而不是 `task_id` 或 `task_template.slug`：因為現有 runtime 已有 `fDuty::oneBySlug(...)` 可作為 owner-side resolve 入口，且 `task_id` 是 member-scoped runtime row，不適合寫進 claim payload；`task_template.slug` 目前則還只是 payload 內欄位，尚未成為正式 owner-side lookup surface。
+- 因此本輪把 `task_template.prerequisite` 的第一版 shape 收斂成 task dependency list，而不是 generic expression tree；第一版只承接「另一個 duty 對應的 task 需先達到 `Done`」這類 prerequisite。
+- 本輪也同步收斂第一版邊界：`prerequisite` 缺省或不可判斷時採 fail-open；但只要 payload 結構合法，`duty_slug` 找不到對應 duty、member 找不到對應 dependency task，或 dependency task status 尚未達到 `expected_status`，第一版都先統一收斂到 `task_unreachable`，不額外新增 `blocked` / `waiting_prerequisite` reason code。
+- 這個取捨刻意保守：它不是最終語意最細的模型，但它能讓 pending query 與 completion path 在不重開 schema、也不新增新 reason code 的前提下，先共用第一條 prerequisite gate。
+- 下一步：若繼續 implementation，應優先由 `fDuty` 補出 `task_template.prerequisite` 的讀取與判斷 helper，再用一條 canonical smoke 驗證 pending query 與 completion path 同步排除 unmet prerequisite task。
+
+## Round 26
+- 本輪延續 `(done)` 階段，正式落地 prerequisite-based achievable filtering 的第一個 runtime slice，但仍維持最小範圍：只處理 `task_template.prerequisite` 的 `duty_slug + expected_status` task dependency，不擴張到更多 prerequisite 類型。
+- 本輪在 `fDuty` 補上 `loadTaskPrerequisite(...)` 與 `hasUnmetTaskPrerequisite(...)`，讓 prerequisite gate 回到 `Duty` owner 判斷，而不是散落在 query 與 completion path 各自重寫。
+- 本輪把同一條 prerequisite gate 接到 `fTask::pendingByMemberId(...)` 與 `kDuty::completeTasksForSeenTarget(...)`：pending query 現在會排除 unmet prerequisite task；completion path 則會在 expired / target availability 之後、factor evaluate 之前，把它收斂到 `skipped_tasks.reason = task_unreachable`。
+- 本輪新增 canonical smoke `www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unmet_prerequisite.php`，驗證 raw pending query 仍保留 prerequisite base 與 dependent 兩筆 task，但 visible pending query 只留下 prerequisite base task；同時驗證對 dependent target 送 seen 時，只寫入本次合法 seen truth，不進 done / reward，並回傳 dependent task 的 `task_unreachable` skip。
+- 已用 Docker 完成驗證：`pending_tasks_exclude_unmet_prerequisite.php` 通過；並重跑 `press_seen_reward.php` 與 `pending_tasks_exclude_unavailable.php`，確認 prerequisite gate 沒有打壞正常 reward path 與既有 unavailable filter。
+- 這代表 prerequisite-based achievable filtering 已不再只是文件 contract，而是已成為 query/runtime 共用的第一條正式 gate；目前下一步才適合討論是否把 `task_unreachable` 再細分成更專門的 reason code，或擴大 prerequisite shape。
+
+## Round 27
+- 本輪延續 `(done)` 階段，承接 Round 26 的正式 gate，但把 prerequisite shape 從 v1 擴到最小可驗證的 v2，而沒有重開 carrier 或 schema。
+- 本輪先確認 carrier 不變，仍以 `claim.task_template.prerequisite` 為唯一 owner-side 入口；drift 不在 runtime data source，而在於文件還停在「只支援 `AND + duty_slug`」的 v1 描述。
+- 因此本輪的最小擴充收斂為兩點：一是 `operator` 正式支援 `OR`；二是 dependency identifier 在既有 `duty_slug` 之外，新增 `task_template_slug` 作為第二個正式支援的 owner-side resolve key。
+- `task_template_slug` 的引入不是要取代 `duty_slug`，而是補足另一個已存在於 claim payload 內、且能回到 `Duty` owner resolve 的穩定 surface；第一版 history 對它的保留理由是當時尚未有正式 resolve path，而本輪已由 `fDuty::oneByTaskTemplateSlug(...)` 補上這條 owner-side 路徑。
+- runtime 邊界仍維持保守：`prerequisite` 缺省、空 payload、未知 `operator`、或 dependency 結構不可判斷時仍採 fail-open；只有在 payload 結構合法且可 resolve 時，才依 `AND` / `OR` 的語意判定是否 `task_unreachable`。
+- `AND` 語意沿用 v1：所有 dependency 都滿足才可達成；`OR` 語意則擴成：只要任一 dependency 已達到 `expected_status`，該 task 就恢復可見且可完成。
+- 本輪新增 canonical smoke `www/tests/smoke/seen_target_task_completion/prerequisite_or_task_template_slug.php`，驗證三件事：其一，OR prerequisite 在沒有任何 dependency 完成前，dependent task 不出現在 visible pending；其二，只要由 `task_template_slug` 指向的 dependency task 先完成，dependent task 會重新出現在 pending query；其三，後續對 dependent target 送 seen 時，completion path 能正常完成 dependent task 並發 reward。
+- 已用 Docker 完成驗證：`prerequisite_or_task_template_slug.php` 通過；並重跑 `pending_tasks_exclude_unmet_prerequisite.php` 與 `press_seen_reward.php`，確認 v2 擴充沒有打壞 v1 的 `AND + duty_slug` gate 與既有正常 reward path。
+- 這代表 prerequisite shape 現在已從「單一路徑的 dependency gate」擴成「同一 carrier 下的多 identifier / 多 operator gate」，但仍維持最小 owner-side resolve 與單一 `task_unreachable` reason code；下一步才適合討論是否要把 prerequisite-specific reason code 細分，或再擴更多 dependency 類型。
+
+## Round 28
+- 本輪延續 `(done)` 階段，但不再擴 runtime 規則，而是補 prerequisite matrix 的驗收密度，讓目前已支援的 `AND | OR` 與 `duty_slug | task_template_slug` 四個角落都各自有獨立 smoke 承接。
+- 本輪先確認既有 coverage 的缺口很局部：目前只有 `pending_tasks_exclude_unmet_prerequisite.php` 覆蓋純 `AND + duty_slug`，以及 `prerequisite_or_task_template_slug.php` 覆蓋偏混合的 `OR + task_template_slug`；因此 matrix 還缺 `AND + task_template_slug` 與 `OR + duty_slug` 兩個純案例。
+- 因此本輪新增 `www/tests/smoke/seen_target_task_completion/pending_tasks_exclude_unmet_prerequisite_task_template_slug.php`，專門驗證 `AND + task_template_slug`：當 prerequisite task 尚未達到 `Done` 前，pending query 會隱藏 dependent task，completion path 對 dependent target 送 seen 時會回傳 `task_unreachable`，且不寫 reward。
+- 本輪也新增 `www/tests/smoke/seen_target_task_completion/prerequisite_or_duty_slug.php`，專門驗證 `OR + duty_slug`：當兩個 duty dependency 都未完成前，dependent task 不可見；只要其中一個 `duty_slug` dependency 先達成，dependent task 就會恢復可見，且後續 seen 可正常完成 dependent task 並發 reward。
+- 加上既有 `pending_tasks_exclude_unmet_prerequisite.php` 與 `prerequisite_or_task_template_slug.php`，目前 prerequisite matrix 已有四個明確角落：
+	- `AND + duty_slug`
+	- `AND + task_template_slug`
+	- `OR + duty_slug`
+	- `OR + task_template_slug`
+- 已用 Docker 完成驗證：新加入的兩條 smoke 都通過，並同步重跑 `prerequisite_or_task_template_slug.php` 作為 focused regression；因此目前 prerequisite v2 的 matrix coverage 已不再只靠單一路徑與混合案例推論。
+- 這代表下一步若要繼續前進，已不需要再優先補 prerequisite matrix 密度；更合理的下一步是處理 `task_unreachable` 是否細分成 prerequisite-specific reason code，或進一步補非 happy-path matrix，例如 unknown operator / invalid dependency payload 的 fail-open contract。
+
+## Round 29
+- 本輪延續 `(done)` 階段，承接 Round 28 後的下一個最小步驟，但仍不改 runtime helper，而是把 prerequisite 的 non-happy-path contract 從文件描述推進到可執行 smoke。
+- 本輪先確認 drift 很局部：`plan.md` 與 `check.md` 已把下一步指向 unknown operator / invalid dependency payload 等 non-happy-path contract，但 runtime 目前只有 happy-path matrix 與 `task_unreachable` path 的 smoke，尚未對 fail-open 邊界留下獨立證據。
+- 因此本輪新增 `www/tests/smoke/seen_target_task_completion/prerequisite_unknown_operator_fail_open.php`，專門驗證 `task_template.prerequisite.operator` 為未知值時採 fail-open：即使 payload 內仍帶有 unmet dependency，pending query 也不應隱藏 dependent task，completion path 對 dependent target 送 seen 時仍可正常完成並寫 reward。
+- 本輪也新增 `www/tests/smoke/seen_target_task_completion/prerequisite_invalid_dependency_fail_open.php`，專門驗證 dependency item 結構不可判斷時同樣採 fail-open：缺少 `duty_slug` / `task_template_slug` 的 invalid dependency payload 不應把 dependent task 判成 unreachable。
+- 這兩條 smoke 都刻意保留一個未完成的 prerequisite base task，避免只驗證「沒有 prerequisite effect」的空案例，而是直接證明 fail-open contract 不會被未完成依賴誤傷。
+- 已用 Docker 完成驗證：`prerequisite_unknown_operator_fail_open.php` 與 `prerequisite_invalid_dependency_fail_open.php` 都通過，結果顯示 pending query 會保留 dependent task，completion path 也會完成 dependent task 並只寫一筆對應 reward。
+- 這代表 prerequisite 的 non-happy-path contract 已至少補齊兩條 fail-open 邊界證據：unknown operator 與 invalid dependency payload。下一步若要繼續前進，應優先處理剩下還沒有獨立 smoke 的 unresolvable dependency contract，或正式決定是否把 `task_unreachable` 細分成 prerequisite-specific reason code。
+
+## Round 30
+- 本輪延續 `(done)` 階段，承接 Round 29 後的最小下一步，先補「dependency 無法 resolve」這條尚未有獨立 smoke 的 prerequisite contract。
+- 本輪原本先新增 `www/tests/smoke/seen_target_task_completion/prerequisite_unresolvable_dependency.php`，預期用它驗證 unresolvable `duty_slug` 仍會在 pending query / completion path 收斂到 `task_unreachable`；但第一次 Docker 驗證直接揭露一個真正的 drift：目前 code 會把 resolve 不到 duty 的 dependency 當成 `null`，進而走 fail-open，而不是文件一直描述的 fail-closed / unreachable 路徑。
+- 這不是單純驗收缺口，而是程式 / 文件 drift；因此本輪沒有回頭改文件來迎合現況，而是依既有 spec 收斂方向，直接在 `fDuty::resolveTaskPrerequisiteDuty(...)` 修正 root cause，把「identifier 存在但 resolve 不到 duty」與「payload 根本不可判斷」分開處理。
+- 修正後的規則變成：
+	- `duty_slug` / `task_template_slug` 都不存在時，仍維持 fail-open，讓 invalid payload 由既有 smoke 承接
+	- 但只要 identifier 欄位存在、卻 resolve 不到 duty，就改收斂成 unmet prerequisite，進而在 query / completion path 上落到 `task_unreachable`
+- 本輪新增的 `prerequisite_unresolvable_dependency.php` 現在已通過 Docker 驗證，證明 raw pending query 仍保留 dependent task row，但 visible pending query 會把它隱藏；completion path 對 dependent target 送 seen 時，會保留 seen truth、避免 reward，並回傳 `skipped_tasks.reason = task_unreachable`。
+- 本輪也同步重跑 `prerequisite_unknown_operator_fail_open.php` 與 `prerequisite_invalid_dependency_fail_open.php`，確認這次 helper 修正沒有打壞既有 fail-open contract。
+- 這代表 prerequisite 的 non-happy-path contract 現在已分成兩類並各自有證據：unknown operator / invalid payload 維持 fail-open；unresolvable dependency 則正式收斂到 `task_unreachable`。下一步若要繼續前進，才適合討論是否把 `task_unreachable` 再細分成 prerequisite-specific reason code，或是否要補 `task_template_slug` unresolved 的對應 smoke 來把 unreachable 也補成 identifier matrix。
+
+## Round 31
+- 本輪延續 `(done)` 階段，但不再改 helper；而是把 unreachable 這一側的 identifier matrix 補到對稱完整，避免目前只有 `duty_slug` 有 unresolved smoke、`task_template_slug` 仍停留在口頭推論。
+- 本輪新增 `www/tests/smoke/seen_target_task_completion/prerequisite_unresolvable_task_template_slug.php`，專門驗證 `task_template_slug` 有值但 resolve 不到 duty 時，contract 應與 unresolved `duty_slug` 完全一致：raw pending query 保留 dependent task row、visible pending query 隱藏它、completion path 保留 seen truth 並回傳 `task_unreachable`，且不寫 reward。
+- 本輪同步重跑既有 `www/tests/smoke/seen_target_task_completion/prerequisite_unresolvable_dependency.php`，確認 unresolved `duty_slug` 與 unresolved `task_template_slug` 現在都落在同一條 unreachable contract，而不是只對其中一種 identifier 成立。
+- 已用 Docker 完成驗證：新 smoke 通過，且既有 unresolved `duty_slug` smoke 也通過；因此 prerequisite 的 unreachable 邊界現在也已形成完整 identifier matrix，而不再只覆蓋單一 identifier。
+- 這代表 prerequisite contract 目前已同時具備：happy-path matrix、fail-open non-happy-path、以及 fail-closed / unreachable identifier matrix。下一步若要繼續前進，最合理的最小步驟已收斂成是否把 `task_unreachable` 細分成 prerequisite-specific reason code，而不是再補 smoke 密度。
+
+## Round 32
+- 本輪延續 `(done)` 階段，直接承接 Round 31 已收斂好的最小下一步：把 prerequisite 失敗從泛稱 `task_unreachable` 細分成 prerequisite-specific reason code。
+- 本輪沒有再擴 prerequisite carrier、identifier、operator 或 smoke matrix，而是把 owner-side helper 提升成能回傳 failure reason，而不是只有 boolean unmet 判斷。
+- 目前 prerequisite-specific reason code 正式收斂成兩種：
+	- `prerequisite_unmet`：dependency 已成功 resolve 到 duty 與 member task row，但 `expected_status` 尚未成立
+	- `prerequisite_unresolvable`：dependency identifier 已提供，但無法 resolve 到 duty，或 member 根本不存在對應 dependency task row
+- `prerequisite` 缺省、空 payload、未知 `operator`、或 dependency 結構不可判斷時，仍維持既有 fail-open，不會產生上述任一 prerequisite-specific reason。
+- 本輪在 `fDuty` 補上 prerequisite failure reason 的 owner-side判斷，並讓 `kDuty::completeTasksForSeenTarget(...)` 不再硬寫 `task_unreachable`，而是直接使用 `fDuty` 回傳的 prerequisite-specific reason code。
+- 本輪同步更新最直接斷言 prerequisite skip reason 的 smoke：未達成依賴的案例現在驗證 `prerequisite_unmet`，無法 resolve 的案例現在驗證 `prerequisite_unresolvable`。
+- 已用 Docker 完成驗證：`pending_tasks_exclude_unmet_prerequisite.php`、`pending_tasks_exclude_unmet_prerequisite_task_template_slug.php`、`prerequisite_unresolvable_dependency.php`、`prerequisite_unresolvable_task_template_slug.php` 都通過；並同步重跑 `prerequisite_unknown_operator_fail_open.php` 與 `prerequisite_invalid_dependency_fail_open.php`，確認新的 reason 分流沒有打壞既有 fail-open contract。
+- 這代表 prerequisite contract 現在不再只區分「會不會被擋」，而已能區分「是依賴尚未滿足」還是「依賴根本不可解析」。下一步若要繼續前進，比較合理的方向就不再是 prerequisite reason 細分，而是決定是否仍保留泛稱 `task_unreachable` 作為未來非-prerequisite unreachable 的通用 reason，或把這個名稱正式淘汰出 prerequisite domain。
+
+## Round 33
+- 本輪延續 `(done)` 階段，但不再新增 code 或 smoke，而是把上一輪已縮到最後的名詞決策正式定稿：泛稱 `task_unreachable` 保留，但明確退出 prerequisite domain。
+- 本輪的決策不是折衷語氣，而是明確語意邊界：
+	- `task_unreachable` 保留作為未來非-prerequisite unreachable path 的通用 reason 名稱
+	- prerequisite domain 一律使用 `prerequisite_unmet` 與 `prerequisite_unresolvable`
+- 保留 `task_unreachable` 的理由是它仍有架構價值：若未來出現不是 prerequisite、但仍屬 achievable gating 的 unreachable path，直接沿用通用名稱會比再發明第三組臨時詞更穩定。
+- 但同時把它排除出 prerequisite domain，則可避免把「依賴尚未滿足」與「依賴不可解析」再次壓扁成單一 skip reason，讓 owner-side contract 維持目前已驗證的可解釋粒度。
+- 因此從本輪起，current spec 應把 `task_unreachable` 視為 reserved generic reason，而不是 prerequisite runtime 的現行輸出；只要是在 `task_template.prerequisite` 下發生的 skip，都不再回寫成 `task_unreachable`。
+- 這個決策完成後，prerequisite domain 的主要 drift 已不再是命名；下一步若要繼續前進，應改把注意力移到其他非-prerequisite achievable path 是否真的需要 generic `task_unreachable`，而不是繼續在 prerequisite 名詞上打轉。
+
+## Round 34
+- 本輪延續 `(done)` 階段，承接 Round 33 的名詞決策，但再往前收斂一步：不是只說 `task_unreachable` 可以保留，而是明確判定 current runtime 目前沒有任何非-prerequisite path 需要它落地。
+- 本輪先回到 code 做最小驗證：`kDuty::completeTasksForSeenTarget(...)` 目前實際輸出的 skip reason 只剩 `target_unavailable`、`task_expired`、`factor_not_matched`、`already_completed`，以及 prerequisite-specific reason；目前沒有任何非-prerequisite path 在使用 generic `task_unreachable`。
+- 這代表上一輪的保留決策不應被解讀成「下一步就該把 `task_unreachable` 落成新的 runtime 分支」；更準確的結論是：它目前只保留在 vocabulary / future-contract 層，尚未有現成程式分支值得承接。
+- 因此本輪把 `task_unreachable` 的地位正式收斂為 reserved-only term：可以保留在 spec vocabulary 中，但在 current implementation scope 內不主動追求對應 runtime 輸出，也不把它當成待完成的功能缺口。
+- 這個判定能避免一種常見誤判：因為名詞被保留，就誤以為接下來必須硬做一條 generic unreachable path。以目前程式現況來看，這樣做只會為了填名詞而重開 achievable 邊界，反而偏離最小前進。
+- 因此從本輪起，若沒有新出現的非-prerequisite achievable gating 需求，`task_unreachable` 就維持 reserved-only；下一步應轉向其它真正存在的行為缺口，而不是為 generic term 補一條不存在的 runtime path。
+
+## Round 35
+- 本輪延續 `(done)` 階段，不動 runtime contract，只修正 validation artifact drift，前提是泛稱 `task_unreachable` 仍保留，但僅保留在 generic vocabulary 層。
+- 既然 prerequisite domain 的現行 runtime / smoke 斷言都已正式收斂到 `prerequisite_unresolvable`，那麼 unresolved prerequisite smoke 再繼續沿用 `*_task_unreachable.php` 檔名，只會讓驗證 artifact 持續傳遞已淘汰的 prerequisite-domain 名詞。
+- 因此本輪把兩支 smoke 正式改名為：
+	- `www/tests/smoke/seen_target_task_completion/prerequisite_unresolvable_dependency.php`
+	- `www/tests/smoke/seen_target_task_completion/prerequisite_unresolvable_task_template_slug.php`
+- 這次改名不代表泛稱 `task_unreachable` 被移除；相反地，它是把 generic vocabulary 與 prerequisite-specific runtime contract 明確拆開：generic term 繼續保留，但 prerequisite 驗證 artifact 不再冒用它。
+- 本輪同步把 current spec 與 Docker 驗證引用改到新檔名，讓文件、artifact 名稱與實際斷言重新一致。這樣一來，保留 `task_unreachable` 的決策與 prerequisite smoke 命名就不再互相打架。
+
+## Round 36
+- 本輪延續 `(done)` 階段，承接 Round 35 後的最小下一步，改補一條真正存在、但先前只有間接證據的 non-prerequisite achievable 邊界：`factor_not_matched`。
+- 這次沒有動 runtime code，因為 controlling path 已經很清楚：`kDuty::completeTasksForSeenTarget(...)` 在 target 可用、task 未過期、也沒有 prerequisite failure 時，若 factor evaluate 失敗，本來就會回傳 `skipped_tasks.reason = factor_not_matched`；真正缺的是一支更直接的 canonical smoke。
+- 因此本輪新增 `www/tests/smoke/seen_target_task_completion/factor_not_matched_keeps_pending_visible.php`，專門驗證「會員先看了合法但不相符的 Press target」時，系統應：
+	- 仍建立合法的 `press_seen` truth
+	- 不完成 task，也不寫 reward
+	- 回傳 `factor_not_matched`
+	- 並且讓 pending query 繼續保留該 task，因為它仍屬可達成而非 unreachable
+- 已用 Docker 完成驗證，新 smoke 通過；這代表 `factor_not_matched` 不再只存在於 `post_seen_accumulate_reward.php` 的累積式流程中，而已有單點、可讀性更高的直接證據。
+- 這一步也把 current spec 對「其他真正存在的 achievable 邊界」的下一步要求收斂得更具體：目前至少有一條 non-prerequisite gate 已補成獨立 smoke，不必再把所有注意力放回 prerequisite 名詞或 generic `task_unreachable`。
+
+## Round 37
+- 本輪延續 `(done)` 階段，但不再新增 smoke 或 code，而是收斂 current plan 的 next-step 語氣。
+- 在 Round 36 之後，current runtime 中實際存在且已命名的 skip reason，已各自具備 direct evidence：`target_unavailable`、`task_expired`、`factor_not_matched`、`already_completed`，以及 prerequisite-specific reason 都已有對應 smoke 或直接斷言。
+- 因此 current plan 若仍寫成「下一步應改補其他真正存在的 non-prerequisite skip reason 或 achievable 邊界」，就會讓人誤以為還有一條已知缺口待補；這在現在已經不準確。
+- 本輪不改變方向判斷，只把它收斂成更精確的 current-state：現有已知 runtime 邊界已具備可採信 evidence；下一步只有在再識別出新的實際邊界或 optimization 問題時，才需要開新切片。
+- 這樣做的目的是避免 FDD 在 `(done)` 階段為了維持前進感而硬補不存在的 gap，讓後續工作回到「新證據驅動」而不是「名單驅動」。
+
+## Round 38
+- 本輪進入 retrospective / `(Optimization)` 收斂，不再擴 feature 或驗證 matrix，而是確認 current spec 是否已具備最小 closeout 條件，並把穩定規則回填到 shared docs。
+- 目前判定已符合 `(Optimization)` 入口：
+	- current runtime 中已知且已命名的 skip / short-circuit 邊界都已有 direct evidence
+	- prerequisite contract 已具備 happy-path、fail-open、fail-closed 與 reason split 的 Docker 證據
+	- generic `task_unreachable` 已完成名詞決策，且目前僅保留在 vocabulary / future-contract 層
+- 因此本輪不再把 `SeenTargetTaskCompletion` 視為「距離 `(Optimization)` 仍有明顯差距」的 active implementation spec，而改把重點轉向文檔 distillation。
+- 本輪把 feature-closeout 的穩定結論整理進 `optimization.md`，並把可跨 spec 重用的名詞回填到 shared glossary：
+	- `Seen-target completion`
+	- `prerequisite_unmet`
+	- `prerequisite_unresolvable`
+	- `task_unreachable`（reserved generic vocabulary）
+- 這代表 `SeenTargetTaskCompletion` 從本輪起已具備 retrospective / archive 準備狀態；若後續沒有新 evidence 打破前提，剩下的工作主要是 closeout 與未來引用，而不再是本 spec 內的功能推進。

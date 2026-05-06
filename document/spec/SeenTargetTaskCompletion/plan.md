@@ -106,5 +106,38 @@ Fallback：
 - 若本輪尚未找到可直接執行的 Docker smoke，至少先在 `check.md` 明列待補驗證入口，不以 host-only failure 代替驗收。
 
 ## 下一步
-- 下一個最小步驟是繼續 `(done)`，把 pending query / 前台 task list 與 completion path 再往 `task_unreachable` 或 prerequisite-based achievable filtering 收斂一小步，避免只排除 expired / target_unavailable 後仍把不可達成 task 視為可完成。
-- implementation 期間，應同步把 runtime 驗證逐步從 `event_rule_engine/*` baseline smoke 移到 `www/tests/smoke/seen_target_task_completion/` canonical suites。
+- prerequisite-based achievable contract 的 runtime carrier 已正式收斂並落地在 `claim.task_template.prerequisite`，因此下一個最小步驟不再是建立第一條 gate，而是沿同一個 carrier 補第二層語意與驗收收尾。
+- 目前已成立的 shape 分成兩版：
+	- v1：`operator + tasks[*].duty_slug + expected_status`
+	- v2：在不重開 carrier 的前提下，新增 `OR` operator 與 `tasks[*].task_template_slug` identifier
+- 目前仍維持這些邊界：不重開 schema、不新增 task row 欄位、不另建 generic progress table；若 `task_template.prerequisite` 缺省，代表該 task 在 prerequisite 維度上預設可達成。
+- 目前可採信的 shape 範例如下：
+```json
+{
+	"prerequisite": {
+		"operator": "OR",
+		"tasks": [
+			{
+				"duty_slug": "member-profile-complete",
+				"expected_status": "Done"
+			},
+			{
+				"task_template_slug": "press-first-seen",
+				"expected_status": "Done"
+			}
+		]
+	}
+}
+```
+- 目前規則：
+	- `operator` 預設為 `AND`，正式支援 `AND` 與 `OR`
+	- `tasks[*].duty_slug` 與 `tasks[*].task_template_slug` 都是正式支援的 dependency identifier
+	- `tasks[*].expected_status` 預設為 `Done`
+	- 仍不支援直接用 `task_id` 當 runtime identifier
+- 目前邊界：
+	- `prerequisite` 缺省、空陣列、未知 `operator`、或不是可判斷 payload 時，先採 fail-open，視為 prerequisite 維度可達成
+	- `prerequisite` 結構合法，但 dependency 無法 resolve 到 duty，或 member 根本不存在該 dependency task row 時，視為 `prerequisite_unresolvable`
+	- dependency task row 存在但 `expected_status` 尚未成立時，`AND` 仍要求全部滿足；`OR` 則只要任一 dependency 滿足即可解除 `prerequisite_unmet`
+- prerequisite matrix 的四角 canonical smoke 已補齊，因此下一個最小 implementation / check 步驟，應優先往下列方向擇一前進：
+	- 泛稱 `task_unreachable` 已決定保留給未來非-prerequisite unreachable path，但目前維持 reserved-only，不構成當前 runtime 待辦
+	- 目前已知、已落 runtime 的 non-prerequisite skip reason / achievable 邊界都已有 direct evidence；因此下一步只在再識別出新的實際邊界或 optimization 缺口時，才需要開新切片，而不是為 generic term 補一條不存在的 runtime path
