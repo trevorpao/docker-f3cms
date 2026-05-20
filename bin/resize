@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+# 用途：對指定資料夾中的原始 jpg / png 圖片批次產生 600x600 縮圖。
+# 例：./bin/resize ./www/upload/img/2019/09
+#
+# 行為摘要：
+# - 只接受一個資料夾參數
+# - 掃描目標資料夾下兩層內的 png / jpg 檔
+# - 若檔名主體已含底線，視為衍生檔，直接跳過
+# - 對原始圖產生 {原檔名}_600x600.{ext}
+
+CU_DIR="$( cd "$( dirname "$0" )" && cd ./ && pwd )";
+
+if command -v magick >/dev/null 2>&1; then
+    IM_CONVERT=(magick)
+elif command -v convert >/dev/null 2>&1; then
+    IM_CONVERT=(convert)
+else
+    echo "UNCERTAIN: ImageMagick convert command not found";
+    exit 1;
+fi
+
+# 從 .env 讀取基礎路徑設定，組出實際工作目錄。
+export $(egrep -v '^#' $CU_DIR/.env | xargs);
+
+# Validate number of arguments
+if [[ $# -eq 1 ]]; then
+
+    if [ ! -d "$BAS_DIR$WRK_DIR$1" ]; then
+        echo "UNCERTAIN: Invalid argument: sLoopTa (folder expected)";
+        exit 1;
+    fi
+
+    # 切到目標資料夾後，後續 convert 直接以檔名運作。
+    cd $BAS_DIR$WRK_DIR$1;
+    pwd
+
+    res1=$(date +%s);
+
+    # 掃描兩層內的 jpg / png。find 回傳相對路徑，例如 ./foo/bar.jpg。
+    find ./ -maxdepth 2 -type f -regextype sed -regex ".*\.\(png\|jpg\)$" -print0 | while IFS= read -r -d $'\0' file
+    do
+        # 轉回以輸入參數為基準的相對顯示路徑，供後續 log 使用。
+        file="$1/${file:2}";
+        DIR=$(dirname "$file");
+        IMG=$(basename -- "$file");
+        EXT="${IMG##*.}";
+        TA="${IMG%.*}";
+        NF=$TA"_600x600."$EXT;
+
+        # 檔名主體含底線時，視為既有衍生檔，避免再被 resize 一次。
+        if echo "$TA" | grep -Eq _; then
+            echo "skip"; # "[$TA]: is not Target!";
+        else
+            # 優先使用 magick，相容 IMv7；舊環境則回退到 convert。
+            echo "Got [$NF]";
+            "${IM_CONVERT[@]}" "$IMG" -quality 90 -resize 600x600 "$NF";
+        fi
+    done;
+
+    echo "DONE";
+    res2=$(date +%s);
+    dt=$(echo "$res2 - $res1" | bc);
+
+    printf "Total runtime: %d sec.\n" $dt;
+
+    exit 0;
+
+else
+    echo "UNCERTAIN: Invalid number of arguments - Usage: resize sLoopTa";
+    exit 1;
+fi

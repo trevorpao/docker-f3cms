@@ -37,6 +37,27 @@
 ./bin/daily_security_check.sh --disk-min-gb=20 --mem-warn-pct=90 --cpu-warn-pct=90
 ```
 
+### 最新檢查報告寄信
+
+如需寄送最新一份 daily security check log，可使用：
+
+```bash
+./bin/send_latest_daily_check.sh
+./bin/send_latest_daily_check.sh --output-dir=/home/ubuntu/checkresult --to=ops@example.com
+```
+
+若希望直接用環境變數固定設定，可在專案根目錄的 `.env` 或部署環境中加入：
+
+```dotenv
+DAILY_CHECK_OUTPUT_DIR=/home/ubuntu/checkresult
+DAILY_CHECK_RECIPIENT=ops@example.com
+```
+
+這兩個變數分別代表：
+
+- `DAILY_CHECK_OUTPUT_DIR`：寄信腳本要搜尋 `security_check_*.log` 的目錄
+- `DAILY_CHECK_RECIPIENT`：寄信收件者；若未設定，會 fallback 到 F3 設定中的 `webmaster`
+
 ### PHP 執行入口
 
 如需直接執行主程式：

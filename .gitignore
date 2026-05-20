@@ -6,6 +6,8 @@ log/apache/*
 log/mysql/*
 log/php/*
 log/nginx/*
+www/tmp/*
+!www/tmp/.gitkeep
 
 # www
 www/backend/*

@@ -33,6 +33,8 @@ $f3->route('GET /', function ($f3, $args) {
     echo PHP_EOL.'**'. $f3->get('site_title') .' CLI**'.PHP_EOL.PHP_EOL;
 });
 
+$f3->route('GET /run-daily-security-check', '\F3CMS\rCrontab->do_runDailySecurityCheck');
+$f3->route('GET /send-latest-daily-check', '\F3CMS\rCrontab->do_sendLatestDailyCheck');
 $f3->route('GET /@freq/@tally', '\F3CMS\rCrontab->do_job');
 
 $f3->run();
