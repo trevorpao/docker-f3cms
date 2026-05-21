@@ -5,6 +5,7 @@
 - `FDD Focus`：切換 current spec，建立本輪承接焦點；不是 stage，本身是所有 stage 的前置入口
 - `FDD Sprint`：推進目前 spec 的最小下一步，主要服務 `plan`、`(done)`、`check`
 - `FDD Review`：校準目前 spec 的 stage、文件一致性、驗收狀態與程式 / 文件漂移
+- `FDD Refactor`：在已確認 convention drift 時，執行局部 bounded refactor，恢復 owner boundary、分層語意與穩定 interface；不是用來重開 feature 設計或做 generic cleanup
 - `FDD Retrospective`：只在主要實作與驗收完成後使用，直接對應 `(Optimization)`
 
 ## 1. Stage 判斷順序

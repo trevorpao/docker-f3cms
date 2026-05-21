@@ -22,6 +22,8 @@
     - [Create Module Guide](guides/create_new_module.md)
   - Validation
     - [Data Architecture Checklist](guides/data_architecture_checklist.md)
+    - [API Testing Guide](guides/api_testing_guide.md)
+    - [SMSSystem API Sample](guides/sms_system_api_sample.md)
     - [PR Review Checklist](guides/pr_review_checklist.md)
   - Writing
   - [Coding Style](guides/coding_style.md)
@@ -31,6 +33,7 @@
   - [Reference Index](reference/intro.md)
   - [Feed Function Reference](reference/feed_reference.md)
   - [Reaction Function Reference](reference/reaction_reference.md)
+  - [API Route Contract Reference](reference/api_route_reference.md)
   - [Outfit Function Reference](reference/outfit_reference.md)
 - Examples
   - [Cashier Usage](examples/cashier_usage.md)

@@ -55,6 +55,12 @@ FDD 指令是操作入口，不等於 stage 本身。stage 仍以 `idea -> (disc
 - 對應關係：不是單一 stage，而是用來校準 `plan`、`(done)`、`check`、`(Optimization)` 前後是否仍一致。
 - 使用時機：懷疑文件漂移、承接點不清楚、想先 review 再決定是否繼續 sprint 時。
 
+### `FDD Refactor`
+- 用途：在已確認 convention drift 後，執行局部 bounded refactor，恢復 F3CMS 分層語意、owner boundary 與穩定 interface。
+- 對應關係：不是單一 stage；通常發生在 `check` 階段的 convention-refactor 評估之後，或介於 `FDD Review` 與下一輪 `FDD Sprint` 之間。
+- 使用時機：已能明確指出 wrong-layer logic、cross-layer coupling、單一 caller 假抽象、或 owner-boundary leakage，且這些 drift 已影響 implementation、review、驗收或下一步承接時。
+- 補充限制：只做最小可驗證的局部重構，不可藉機重開 feature 設計、擴 scope，或做純審美型 cleanup。
+
 ### `FDD Retrospective`
 - 用途：在主要功能與驗收完成後，將穩定規則、詞彙與共用知識沉澱到 `optimization.md`、glossary、guides、references 等文件。
 - 對應關係：直接對應 `(Optimization)`。
@@ -64,6 +70,7 @@ FDD 指令是操作入口，不等於 stage 本身。stage 仍以 `idea -> (disc
 - `FDD Focus`：先決定現在在做哪個 spec。
 - `FDD Sprint`：推進目前 spec 的最小下一步。
 - `FDD Review`：確認目前 spec 的 stage、文件與現況是否一致。
+- `FDD Refactor`：在 drift 已確認後，做局部 bounded refactor，而不是用 generic cleanup 取代 stage 判斷。
 - `FDD Retrospective`：在 feature 完成後做 `(Optimization)` 與知識沉澱。
 
 ## Stage Entry / Exit Criteria

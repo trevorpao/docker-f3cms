@@ -244,6 +244,7 @@ Test these prompt behaviors in the new project:
 - `FDD Focus`
 - `FDD Sprint`
 - `FDD Review`
+- `FDD Refactor`
 - `FDD Retrospective`
 
 The test should confirm that the LLM:
@@ -273,7 +274,7 @@ Use this checklist before declaring the migration stable.
 - [ ] Workspace instructions tell the LLM where architecture truth lives
 - [ ] Workspace instructions tell the LLM how validation should run
 - [ ] Workspace instructions tell the LLM how DB verification should resolve source of truth
-- [ ] Prompt entry points exist for focus, sprint, review, and retrospective
+- [ ] Prompt entry points exist for focus, sprint, review, refactor, and retrospective
 - [ ] The spec root contains `.current-spec.md`
 - [ ] Feature folders use `idea.md`, `history.md`, `plan.md`, `check.md`, `optimization.md`
 - [ ] The LLM reads `history.md` before `plan.md` and `check.md`
