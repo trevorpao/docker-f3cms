@@ -29,6 +29,7 @@
 ## Inputs
 - [overall.md](overall.md)
 - [create_new_module.md](create_new_module.md)
+- [sms_system_api_sample.md](sms_system_api_sample.md)
 - [data_modeling.md](data_modeling.md)
 - [data_architecture_checklist.md](data_architecture_checklist.md)
 - [fdd_porting_guide.md](fdd_porting_guide.md)
@@ -56,6 +57,8 @@ Choose the entry path based on the question you are trying to answer.
 If the question is:
 - what F3CMS is and how the system is shaped, start from `overall.md`
 - how TestMode-based smoke development should work after the migration, start from `testmode_development_guide.md`
+- how to test a backend API route from the local machine or through Docker validation, start from `api_testing_guide.md`
+- how to integrate the current SMSSystem SBE mainline APIs from frontend code or an LLM, start from `sms_system_api_sample.md`
 - how to write a high-quality FDD `idea.md`, start from `idea_md_writing_guide.md`
 - how to transplant FDD into another project, start from `fdd_porting_guide.md`
 - how to break requirements into modules, start from `sa_requirement_breakdown.md`
@@ -161,6 +164,16 @@ This section describes what each document is for and when it should be opened.
 - Primary source for TestMode-related smoke development after the first migration has stabilized.
 - Use when deciding where a smoke suite should live, how it should be named, how it should be validated, and which paths are no longer allowed.
 - Read before adding new smoke suites or reshaping existing ones under `www/tests/`.
+
+#### [api_testing_guide.md](api_testing_guide.md)
+- Primary source for local-machine and Docker-based API route verification.
+- Use when the task is to call `https://loc.f3cms.com:4433/api/`, choose between curl and smoke validation, or verify external Reaction route behavior.
+- Read before documenting or validating route-level API behavior.
+
+#### [sms_system_api_sample.md](sms_system_api_sample.md)
+- Feature-specific API sample for the current SMSSystem SBE mainline flow.
+- Use when frontend developers or LLMs need concrete request / response examples for `phonebook/create_with_phones` and `campaign/create_from_phonebook`.
+- Read after `api_testing_guide.md` when the question is feature-level payload shape rather than generic route contract.
 
 #### [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
 - Primary source for turning business requirements into entities, module boundaries, and handoff structure.
@@ -365,6 +378,7 @@ If asking:
 - should this be a new module, read `module_design.md`
 - how do I actually scaffold the module after the design is clear, read `create_new_module.md`
 - how should Feed save or query this, read `feed_guide.md`
+- how do I test an API route locally or through Docker, read `api_testing_guide.md`
 - why is this query likely to become slow, read `query_and_performance.md`
 - how should SA package this requirement for SD, read `sa_requirement_breakdown.md`
 - how should SD name and place the files, read `sd_conventions.md`

@@ -35,6 +35,7 @@ $f3->route('GET /', function ($f3, $args) {
 
 $f3->route('GET /run-daily-security-check', '\F3CMS\rCrontab->do_runDailySecurityCheck');
 $f3->route('GET /send-latest-daily-check', '\F3CMS\rCrontab->do_sendLatestDailyCheck');
+$f3->route('GET /run-campaign-worker', '\F3CMS\rCrontab->do_runCampaignWorker');
 $f3->route('GET /@freq/@tally', '\F3CMS\rCrontab->do_job');
 
 $f3->run();

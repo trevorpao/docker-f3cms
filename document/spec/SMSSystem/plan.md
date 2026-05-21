@@ -1,0 +1,243 @@
+# SMSSystem Plan
+
+## Current Stage
+- (Optimization)
+
+## Planning Basis
+- Source of truth: `idea.md`
+- Current objective: 把已收斂的需求拆成可實作、可驗收、可逐輪承接的 stage
+
+## Stage Breakdown
+
+### Stage 1: Data Model And Ownership
+- 建立 `Mobile`、`Phonebook`、`Campaign` 三個 owner module 的責任邊界。
+- 定義 `tbl_mobile`、`tbl_phonebook`、`tbl_phonebook_mobile`、`tbl_campaign`、`tbl_campaign_log` 的欄位、狀態、索引與關聯。
+- 明確哪些邏輯屬於 Feed、Reaction、Kit、Crontab Worker。
+- 明確 provider helper / adapter 不擁有業務狀態，只負責 transport；黑名單、防刷、task log 狀態更新仍由 owner module / worker 邊界持有。
+- 明確 SMSSystem 的主 queue owner 是 `tbl_campaign_log` + worker，不沿用 `smSender` 內建 queue 作為 domain queue。
+- 命名決議：因 repo 既有 `Task` module 已承載另一個 domain，SMSSystem 不直接複用 generic `Task` 命名；實作 owner 改採 `Campaign`，其餘實體維持 `Mobile` / `Phonebook`。
+- 資料表 owner 決議：
+  - `Mobile` 擁有 `tbl_mobile`
+  - `Phonebook` 擁有 `tbl_phonebook`、`tbl_phonebook_mobile`
+  - `Campaign` 擁有 `tbl_campaign`、`tbl_campaign_log`
+- 欄位草案：
+  - `tbl_mobile`
+    - `id`
+    - `phone_number`：E.164 正規化後的唯一值
+    - `status`：`Active` / `Invalid` / `Opt-out`
+    - `last_sent_ts`：最近一次成功發送時間，用於 worker 快速判斷防刷
+    - `insert_ts` / `last_ts` / `insert_user` / `last_user`
+  - `tbl_phonebook`
+    - `id`
+    - `member_id`
+    - `title`
+    - `remark`
+    - `status`：`Enabled` / `Disabled`
+    - `insert_ts` / `last_ts` / `insert_user` / `last_user`
+  - `tbl_phonebook_mobile`
+    - `id`
+    - `phonebook_id`
+    - `mobile_id`
+    - `insert_ts` / `insert_user`
+  - `tbl_campaign`
+    - `id`
+    - `member_id`
+    - `phonebook_id`
+    - `provider_policy`：routing policy snapshot，預設為 `TW_TO_MITAKE_ELSE_AWS`
+    - `content`
+    - `scheduled_ts`
+    - `status`：`Draft` / `Queued` / `Processing` / `Completed` / `PartiallyFailed` / `Failed`
+    - `total_targets` / `sent_count` / `failed_count`
+    - `insert_ts` / `last_ts` / `insert_user` / `last_user`
+  - `tbl_campaign_log`
+    - `id`
+    - `campaign_id`
+    - `member_id`
+    - `phonebook_id`
+    - `mobile_id`
+    - `provider_alias`
+    - `status`
+    - `error_message`
+    - `provider_message_id`
+    - `scheduled_ts`
+    - `sent_ts`
+    - `attempt_ts`
+    - `insert_ts` / `last_ts` / `insert_user` / `last_user`
+- 索引草案：
+  - `tbl_mobile`
+    - unique: `phone_number`
+    - index: `status`
+    - index: `last_sent_ts`
+  - `tbl_phonebook`
+    - index: `member_id`
+    - index: `status`
+    - unique candidate: (`member_id`, `title`) 若產品不允許同名通訊錄
+  - `tbl_phonebook_mobile`
+    - unique: (`phonebook_id`, `mobile_id`)
+    - index: `mobile_id`
+  - `tbl_campaign`
+    - index: `member_id`
+    - index: `phonebook_id`
+    - index: (`status`, `scheduled_ts`)
+  - `tbl_campaign_log`
+    - unique candidate: (`campaign_id`, `mobile_id`) 避免同一 campaign 重複展開
+    - index: (`status`, `scheduled_ts`)
+    - index: `mobile_id`
+    - index: (`mobile_id`, `status`, `sent_ts`)
+    - index: `provider_alias`
+- `tbl_campaign_log` vocabulary 初稿：
+  - `Pending`：已展開、等待 worker 處理
+  - `Sent`：provider 呼叫成功且已記錄 message id / sent_ts
+  - `Failed`：本輪已終止，不做自動重試
+  - `Skipped`：保留字；本期主流程不使用，不拿來承接 `Opt-out`、`Invalid`、rate limit
+- `error_message` 建議先收斂為可驗收文字：
+  - `Opt-out Number`
+  - `Rate Limited (5 mins)`
+  - `Invalid Number`
+  - `Provider Error: <message>`
+- Verify:
+  - 文件可清楚回答每張表由哪個 module 擁有。
+  - 可清楚回答 queue log 由誰展開、由誰消化。
+  - 可清楚回答 provider helper 與 owner module 的責任切線。
+  - 可清楚回答 `smSender` queue 與 `tbl_campaign_log` queue 不屬於同一層責任。
+  - 文件可清楚回答每張表的最小欄位與索引是否足以承接 blacklist、batch expansion、scheduled send、rate limit。
+
+### Stage 2: Provider Helper And Adapter Contract
+- 將 AWS SNS 與三竹簡訊列為正式 provider helper / adapter 範圍，而不是隱含依賴。
+- 承接既有 `SmsProviderInterface`、`AmazonSnsProvider`、`MitakeProvider`、`smSender`，判斷 SMSSystem 應直接整合、薄包裝，或局部補齊缺口，不重做另一套 provider abstraction。
+- 定義 provider alias、routing rule、回傳結構、message id、failure payload 與設定來源。
+- 明確 `smSender` 是 generic transport façade，還是 SMSSystem 內由 `Task` / `kTask` 呼叫的 provider gateway。
+- 目前決議：
+  - 直接沿用 `SmsProviderInterface`、`AmazonSnsProvider`、`MitakeProvider` 作為 transport adapter。
+  - `smSender` 只可作為 generic provider façade / fallback pipeline utility。
+  - SMSSystem 不採用 `smSender` 內建 queue/envelope 作為主要排程來源，主佇列仍由 `tbl_campaign_log` 持有。
+  - provider routing rule 固定為：正規化後 `+886` 門號使用 `MitakeProvider`，其它國碼門號使用 `AmazonSnsProvider`。
+  - `tbl_campaign.provider_policy` 紀錄 campaign 建立當下採用的 routing policy；`tbl_campaign_log.provider_alias` 紀錄單筆實際選中的 provider。
+  - `Campaign` / `kCampaign` / worker 取得 provider 回傳後，再由 owner 邊界映射成 `Pending` / `Sent` / `Failed` 與 error message vocabulary。
+- Verify:
+  - 文件可清楚回答 AWS / 三竹 helper 是否直接沿用現有 libs。
+  - 文件可清楚回答 `+886` 與非 `+886` 門號如何決定 provider。
+  - 文件可清楚回答 provider failure 如何映射到 `tbl_campaign_log` vocabulary。
+  - 文件可清楚回答 `smSender` 是否被允許持有 SMSSystem queue state。
+
+### Stage 3: Task Expansion Contract
+- 定義會員建立發送任務時，如何從 `Phonebook` 展開 `CampaignLog`。
+- 明確同步建立任務與非同步消化的資料流。
+- 定義 `Pending` / `Sent` / `Failed` 狀態與錯誤訊息 vocabulary。
+- 展開 contract 決議：
+  - `rCampaign` 建立 campaign 時，同步寫入 `tbl_campaign`，並在同一個 owner-side 流程中展開 `tbl_campaign_log`。
+  - 展開來源是 `tbl_phonebook_mobile` 對應的 `mobile_id` 集合；展開前不重做 provider API 呼叫，也不等待 worker。
+  - 展開以唯一 `mobile_id` 為單位；同一 phonebook 若因匯入或歷史資料出現重複綁定，仍只為同一 `campaign_id + mobile_id` 建一筆 log。
+  - `tbl_campaign_log.provider_alias` 在展開當下就寫入，依 `tbl_campaign.provider_policy` 與 `tbl_mobile.phone_number` 的正規化結果決定：`+886` -> `mitake`，其它 -> `sns`。
+  - worker 消化時不重新挑 provider；除非發現 `provider_alias` 缺值或與 policy 不一致，才視為資料異常而記錄 failure。
+  - 第一個 implementation slice 已落地在 `www/f3cms/modules/Campaign/feed.php`，目前先由 `fCampaign::createForPhonebook(...)` 提供最小 owner-side expansion surface。
+- 初始狀態與欄位寫入：
+  - `tbl_campaign.status` 在展開成功後寫為 `Queued`。
+  - `tbl_campaign_log.status` 初始一律寫為 `Pending`。
+  - `tbl_campaign_log.scheduled_ts` 複製自 `tbl_campaign.scheduled_ts`，作為 worker 撈取依據。
+  - `tbl_campaign_log.member_id`、`phonebook_id`、`mobile_id`、`provider_alias` 於展開時一次寫齊，避免 worker 再回查多表才能決定 routing。
+  - `tbl_campaign_log.error_message`、`provider_message_id`、`attempt_ts`、`sent_ts` 初始為 `null`。
+- 計數欄位 contract：
+  - `tbl_campaign.total_targets` 以實際成功展開的唯一 `mobile_id` 筆數為準。
+  - `tbl_campaign.sent_count` / `failed_count` 建立當下初始化為 `0`。
+  - 後續只由 worker 在 log 狀態變化後回寫彙總，不由 provider helper 更新。
+- 去重與異常處理 contract：
+  - 去重主依據是 `mobile_id`，不是原始輸入字串；因此 phonebook 匯入流程必須先把門號正規化並落到 `tbl_mobile`。
+  - 若 phonebook 沒有任何可展開 target，`tbl_campaign` 不應進入 `Queued`；應留在 owner boundary 直接拒絕建立或標記為 `Failed`，避免產生空 campaign。
+  - 若展開過程遇到缺少 `tbl_mobile` 主檔或無法判定 provider 的資料，視為資料異常，不應產生部分隱形遺漏；應明確中止該 campaign 建立流程或落明確 failure。
+- Mainline scenario：
+  - 會員對一個含 3 筆唯一門號的 phonebook 建立 task。
+  - `rCampaign` 同步寫入 1 筆 `tbl_campaign` 與 3 筆 `tbl_campaign_log(Pending)`，並在回應前完成 `provider_alias` 決定與 `total_targets=3`。
+  - HTTP 回應不等待簡訊送出；真正發送由 worker 之後依 `scheduled_ts` 消化。
+- Verify:
+  - 可用一個 mainline scenario 說明 task 建立後不阻塞回應、背景再消化。
+  - 文件可清楚回答 `provider_alias` 在展開時寫入，而不是等 worker 執行前才決定。
+  - 文件可清楚回答 `total_targets` / `sent_count` / `failed_count` 的更新責任。
+  - 文件可清楚回答 phonebook 內重複門號如何在 task 展開時去重。
+
+### Stage 4: Worker Guardrails
+- 定義 worker 對 `Opt-out` 與「5 分鐘限發一次」的判斷順序。
+- 定義 provider routing 判定點與 failure recording contract，並銜接 Stage 2 的 helper / adapter 回傳結構。
+- 暫不展開 smart retry。
+- Guardrail 決議：
+  - worker 只撈取 `scheduled_ts <= NOW` 且 `status = Pending` 的 `tbl_campaign_log`。
+  - worker 執行順序固定為：
+    1. 驗證 `provider_alias` 是否存在且符合 `tbl_campaign.provider_policy`
+    2. 驗證 `tbl_mobile.status` 是否為 `Opt-out`
+    3. 驗證 `tbl_mobile.status` 是否為 `Invalid`
+    4. 驗證是否命中 5 分鐘 rate limit
+    5. 通過後才呼叫既有 provider adapter
+  - `provider_alias` 由 Stage 3 展開時決定；worker 不重新做 routing，只驗證資料是否一致。
+- 狀態切線決議：
+  - `Opt-out` -> `Failed`，`error_message = Opt-out Number`
+  - `Invalid` -> `Failed`，`error_message = Invalid Number`
+  - rate limit 命中 -> `Failed`，`error_message = Rate Limited (5 mins)`
+  - provider adapter 回傳失敗 -> `Failed`，`error_message = Provider Error: <message>`
+  - provider adapter 回傳成功 -> `Sent`
+  - `Skipped` 不用於本期主流程，避免與 `idea.md` 的 SBE 範例衝突；若未來有人工取消、task 停用或系統性略過需求，再另開規格決定是否啟用。
+- 欄位回寫 contract：
+  - worker 開始處理當筆 log 時，先寫 `attempt_ts = NOW`。
+  - 只有 `Sent` 才更新 `tbl_campaign_log.sent_ts` 與 `tbl_mobile.last_sent_ts`。
+  - `Failed` 不更新 `tbl_mobile.last_sent_ts`，避免把未成功發送誤算進防刷基準。
+  - provider success 時寫入 `provider_message_id`；provider failure 時保留 `provider_message_id = null`。
+- Task 彙總回寫 contract：
+  - 任一 log 轉為 `Sent` 後，worker 回寫 `tbl_campaign.sent_count`。
+  - 任一 log 轉為 `Failed` 後，worker 回寫 `tbl_campaign.failed_count`。
+  - 當 `sent_count + failed_count = total_targets` 時，`tbl_campaign.status` 收斂為：
+    - 全部 `Sent` -> `Completed`
+    - 全部 `Failed` -> `Failed`
+    - 兩者混合 -> `PartiallyFailed`
+- Drift note：
+  - 這一輪以 `idea.md` 的 SBE 為 source of truth，明確把 `Opt-out` 與 rate limit 收斂到 `Failed`，解掉先前 `Skipped` vocabulary 漂移。
+- Verify:
+  - 與 idea 中兩個 SBE scenario 無衝突。
+  - 文件可清楚回答 `Opt-out`、`Invalid`、rate limit 的判斷順序。
+  - 文件可清楚回答 `Skipped` 與 `Failed` 的切線，且不與 `idea.md` 衝突。
+  - 文件可清楚回答 worker 是否同時更新 `tbl_mobile.last_sent_ts` 與 `tbl_campaign_log.sent_ts`。
+  - 文件可清楚回答 provider 失敗時 `failed_count` 與 `error_message` 如何更新。
+
+### Stage 5: Validation Route
+- 定義 Docker-based 驗證入口與最小 smoke strategy。
+- 若涉及資料庫驗證，以 `.env` 為連線來源。
+- 驗證 baseline 決議：
+  - `php-fpm` 是 SMSSystem 的正式 PHP 驗證 service，負責 syntax check、smoke、CLI route 驗證。
+  - `mariadb` 只在 smoke 無法直接觀察資料狀態時，才作為補充 SQL 驗證 service。
+  - `web-server` 不是本 feature 的主要驗證入口；worker / queue 驗證以 CLI 與 smoke 為主。
+- canonical command shape：
+  - PHP syntax: `docker compose exec -T php-fpm php -l /var/www/<touched-file>.php`
+  - smoke: `docker compose exec -T php-fpm php /var/www/tests/smoke/sms_system/<case>.php`
+  - worker/CLI route: `docker compose exec -T php-fpm php /var/www/cli/index.php /<sms-worker-route>`
+  - 若後續提供 `bin/` wrapper，只能當 convenience entry；正式結果仍以直接 Docker command 為準。
+- 最小 smoke coverage 決議：
+  - `task_expansion.php`
+    - 驗證 phonebook 轉 campaign 時只建立唯一 `mobile_id` 的 `tbl_campaign_log`
+    - 驗證 `provider_alias` 依 `+886 -> mitake`、其它 -> `sns` 寫入
+  - `web_route_phonebook_campaign_flow.php`
+    - 驗證正式 HTTPS `/api/phonebook/create_with_phones` 與 `/api/campaign/create_from_phonebook` 會經過 Nginx / F3 對外路由，並建立 deduped phonebook、`Queued` campaign 與 `Pending` logs
+    - 驗證 `/api/phonebook/mine` 與 `/api/campaign/mine` 會在 member session 下只回傳目前會員自己的資料
+    - 驗證 mine list route 的回傳 contract 對齊 paginated `subset` / `total` / `limit` / `page`
+  - `worker_opt_out.php`
+    - 驗證 `Opt-out` 不呼叫 provider，`tbl_campaign_log.status = Failed`
+  - `worker_rate_limit.php`
+    - 驗證 5 分鐘內已送成功的門號再次處理時收斂到 `Failed`
+  - `worker_provider_routing.php`
+    - 驗證 `+886` 與非 `+886` 門號分流到不同 provider adapter
+  - `worker_provider_failure.php`
+    - 驗證 provider 失敗時 `error_message`、`failed_count`、`provider_message_id` 的回寫
+- DB 驗證 contract：
+  - 優先在 smoke 內透過既有 F3CMS test bootstrap 觀察資料列與欄位狀態，不另外發明 host 端連線。
+  - 若需要直接 SQL 驗證，必須走 Docker `mariadb` service，且連線資訊以 `.env` 為唯一來源；不得硬編碼帳密或改用猜測 DSN。
+  - Docker 與 host 結果不同時，以 Docker 觀察為準。
+- 驗收收斂規則：
+  - 每個 implementation slice 至少包含 1 個對應 smoke，且變更後先跑最窄的 smoke，再視需要補 route 或 SQL 驗證。
+  - 沒有對應 smoke 時，不得以 `git diff` 或 host-only 指令取代正式驗證。
+- Verify:
+  - 可指出後續實作時應優先走哪個 container / command / smoke path。
+  - 文件可清楚回答何時用 `php-fpm`，何時才需要 `mariadb`。
+  - 文件可清楚回答最小 smoke path 至少要覆蓋 task expansion、provider routing、opt-out、rate limit、provider failure。
+  - 文件可清楚回答 `.env` 是 DB 驗證的唯一帳密來源。
+
+## Current Smallest Next Step
+- 前十個 `(done)` implementation slice 已完成：`Campaign` expansion、最小 worker routing path、`Opt-out` guardrail smoke、`rate limit` guardrail smoke、`provider failure` smoke、`Phonebook -> Mobile -> Campaign` owner-side feed surface、`Campaign` request surface、`Mobile` request surface、`Phonebook -> Campaign` mainline request-flow 驗收案例，以及正式 web route / request-flow 整合驗證都已落地並通過 Docker smoke。
+- 目前最小下一步已從 feature implementation 改為 `(Optimization)` 收尾：同步 spec stage、清除殘留 `Task` vocabulary、補齊已升格到 guides / reference 的穩定規則承接，並把 member-facing mine list route 與 SBE retrieval example 正式接回 spec chain。
+- 若後續仍需處理 SMSSystem，應進入 archive / closeout 判斷，而不是再補同一條 mainline 驗證鏈。
