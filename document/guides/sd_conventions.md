@@ -245,6 +245,66 @@ Move logic to helpers or shared libs when:
 Do not move entity-specific logic to generic helpers just because it is long.
 Do not move module-owned rules into `libs` too early just because more than one module needs them. If the logic still belongs to one module's boundary, prefer that module's Kit so `libs` does not become bloated.
 
+## Architectural Intent Comment Contract
+
+Architectural intent comments are a maintenance tool in F3CMS, not decorative PHPDoc.
+
+When a core `libs` class or other high-risk shared boundary is clarified or ported, the code comments should protect:
+- the layer role the class or function actually owns
+- the red lines it must not cross
+- the porting shape future runtimes should preserve
+
+### Required Comment Shape
+
+For core classes, prefer a four-part class comment that covers:
+- `Architecture Purpose`
+- `Design Intent`
+- `Strict Constraints`
+- `Porting Guidelines`
+
+For functions inside the same class, comments do not all need the same length, but they should at least state:
+- the runtime or owner-boundary role of the method
+- the main red line, especially when convenience could blur ownership
+- a short porting note when the helper shape matters in .NET or Go
+
+Do not treat old-style `@param` / `@return` text as sufficient architectural coverage for core shared classes.
+
+### FORKS-First Boundary Rule
+
+When entity-first structure, reuse convenience, and owner-boundary clarity pull in different directions, preserve FORKS owner boundary first.
+
+Concretely:
+- keep entity truth, duty judgment, payload ownership, writeback, and cross-entity business coordination in the owning module
+- keep `www/f3cms/libs/` for shared runtime, parser, evaluator, or transport-level helpers only
+- do not create a new libs-level coordinator just because logic is reused by more than one module
+
+### P0 Shared Boundary Summaries
+
+The current P0 reference boundaries are:
+
+- `Module`: shared entry/runtime utility base for escaping, request normalization, language/device lookup, slug formatting, and class-path shifting; not an owner-side business coordinator
+- `Feed`: entity-owned persistence base for main / `_lang` / `_meta` / relation lifecycle, query defaults, and entity-centric read/write helpers
+- `Reaction`: request/orchestration boundary for parsing, permission, validation orchestration, and backend response shaping; not a persistence owner
+- `WorkflowEngine`: shared workflow runtime evaluator for definition validation, projection, transition legality, and runtime state calculation; not a workflow persistence owner
+- `Smoke`: shared smoke contract dispatcher for module-owned smoke surfaces; not an owner-side assertion collector, context loader, or fallback router
+- `Outfit`: shared frontend route/render boundary for lifecycle hooks, static-page delivery, template adapters, and presentation filters; not a persistence owner or owner-side page coordinator
+
+### Shared Global Runtime Surface Rule
+
+Some high-risk shared runtime surfaces in F3CMS are not classes.
+
+The current reference example is:
+
+- `www/f3cms/libs/Utils.php`: a shared global runtime surface that exposes bootstrap and service-locator style helpers such as `f3()`, `mh()`, and `rc()`
+
+When a file like this is clarified or ported:
+- do not treat it as a generic utility dump just because it is function-based
+- protect the file-level role first, then document each shared function's boundary and porting shape
+- keep entity truth, module-owned rules, and business coordination out of these global helpers
+- prefer narrowing future dependencies on global helpers rather than expanding them for convenience
+
+If a proposed design contradicts these summaries for convenience, prefer the owner boundary and revise the design rather than widening the shared layer.
+
 ## Rights, Roles, and Menu Integration
 
 A valid module design in F3CMS often includes operational integration, not only code and tables.

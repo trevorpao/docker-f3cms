@@ -179,6 +179,30 @@ Reaction route 對外回傳的標準 JSON shape，核心欄位為 `code`、`data
 ### Web-route Smoke
 直接穿過真實 web entrypoint 驗證 route contract 的 smoke suite。它用來驗證 Nginx / front controller / Reaction route 是否整體成立，而不只是在 helper 或 owner-side request surface 做局部驗證。
 
+### Smoke S Layer
+FORKS 中的 S 層，負責承接最小但正式的驗證契約。對 F3CMS 而言，第一版穩定落點是 `www/tests/index.php {path}` 作為正式入口，並由 module-owned `smoke.php` 持有 entity 測試語意。
+
+### Module-owned Smoke
+由單一 module 擁有的 `www/f3cms/modules/{Entity}/smoke.php`。它承接該 Entity 的 smoke case、surface / contract 白名單與 assertion 語意；shared `www/f3cms/libs/Smoke.php` 只承接 base runtime / dispatch behavior，不應反向擁有 entity truth。
+
+### Smoke Path Grammar
+Smoke 正式入口的 path contract，固定採 `<module>/<surface>/<contract>`。其中 `module` 用來 autodiscovery 對應的 module-owned `smoke.php`，`surface` 與 `contract` 則由該 smoke class 以顯式規則解析。
+
+### Smoke Runtime Guard
+Smoke 正式入口的最小執行 guard。第一版固定要求 `APP_ENV=develop` 與 `ALLOW_SMOKE_WRITE=1`，未滿足時必須直接拒絕執行，而不是只依賴 CLI-only 或環境預設值。
+
+### Smoke DB Isolation
+DB-backed smoke 的隔離規則。第一版固定要求以 `SMOKE_DB_NAME` 指向獨立 smoke DB，且不得重用 primary `db_name`；bootstrap 應在第一次 DB 初始化前建立並切換到該 DB。
+
+### Smoke Tier
+Smoke 對自身驗證成本與覆蓋深度的誠實分類。第一版共享 vocabulary 固定為 `pure_logic`、`fixture_driven`、`db_backed`，用來揭露 suite 的真實驗證形狀，而不是作為強弱標籤。
+
+### Smoke Result Contract
+Smoke 對外應可表達的最小結果上下文。共享預期至少包含 `case`、`domain`、`tier`、`status`、`message`，讓人工閱讀與未來聚合都能理解 suite 實際驗證了什麼。
+
+### Smoke Rerun Contract
+DB-backed smoke 的可重跑契約。它要求 suite 使用穩定命名、擁有自己的 cleanup 邊界，並在隔離的 `SMOKE_DB_NAME` 下可重複執行，而不是依賴人工清庫。
+
 ### Module-owned Presenter
 由單一 module 擁有的 response transform helper，用於承接穩定、可被多個 caller 共用的 row-decoration 或輸出 shape 邏輯，例如 `decorateListRow()`、`decorateDetailRow()`。它的角色是避免多個模組直接跨調另一個 Reaction 的 `handleIteratee()` / `handleRow()`。
 

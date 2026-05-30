@@ -33,6 +33,8 @@
 - [data_modeling.md](data_modeling.md)
 - [data_architecture_checklist.md](data_architecture_checklist.md)
 - [fdd_porting_guide.md](fdd_porting_guide.md)
+- [smoke_s_layer_guide.md](smoke_s_layer_guide.md)
+- [smoke_result_tier_rerun_guide.md](smoke_result_tier_rerun_guide.md)
 - [testmode_development_guide.md](testmode_development_guide.md)
 - [module_design.md](module_design.md)
 - [feed_guide.md](feed_guide.md)
@@ -57,7 +59,10 @@ Choose the entry path based on the question you are trying to answer.
 If the question is:
 - what F3CMS is and how the system is shaped, start from `overall.md`
 - how TestMode-based smoke development should work after the migration, start from `testmode_development_guide.md`
+- how the new FORKS Smoke S Layer should be structured and validated, start from `smoke_s_layer_guide.md`
+- how smoke output, tier vocabulary, and DB-backed rerun behavior should be standardized, start from `smoke_result_tier_rerun_guide.md`
 - how to test a backend API route from the local machine or through Docker validation, start from `api_testing_guide.md`
+- how to test Gene Panel backend login, list, get, save, and get_opts flows, start from `api_testing_guide.md` and then `../reference/Gene Panel.md`
 - how to integrate the current SMSSystem SBE mainline APIs from frontend code or an LLM, start from `sms_system_api_sample.md`
 - how to write a high-quality FDD `idea.md`, start from `idea_md_writing_guide.md`
 - how to transplant FDD into another project, start from `fdd_porting_guide.md`
@@ -165,10 +170,24 @@ This section describes what each document is for and when it should be opened.
 - Use when deciding where a smoke suite should live, how it should be named, how it should be validated, and which paths are no longer allowed.
 - Read before adding new smoke suites or reshaping existing ones under `www/tests/`.
 
+#### [smoke_s_layer_guide.md](smoke_s_layer_guide.md)
+- Primary source for FORKS Smoke S Layer development after the first `www/tests/index.php {path}` contract has stabilized.
+- Use when deciding where smoke ownership belongs, how module-owned `smoke.php` should interact with `www/tests/index.php`, and which runtime guard rules are mandatory.
+- Read before adding new module-owned smoke cases or reshaping the official smoke entry contract.
+
+#### [smoke_result_tier_rerun_guide.md](smoke_result_tier_rerun_guide.md)
+- Primary source for shared smoke result shape, tier classification, and rerun rules after the first Smoke S Layer contract has stabilized.
+- Use when deciding how a smoke should describe its coverage, which tier it belongs to, and how DB-backed suites should stay rerunnable.
+- Read before standardizing smoke output fields or introducing new DB-backed smoke cases that write owned rows.
+
 #### [api_testing_guide.md](api_testing_guide.md)
 - Primary source for local-machine and Docker-based API route verification.
 - Use when the task is to call `https://loc.f3cms.com:4433/api/`, choose between curl and smoke validation, or verify external Reaction route behavior.
 - Read before documenting or validating route-level API behavior.
+
+#### [../reference/Gene Panel.md](../reference/Gene%20Panel.md)
+- Primary source for Gene Panel backend shell context, common backend route examples, and expected response shapes for login, list, get, save, and get_opts flows.
+- Use after `api_testing_guide.md` when the task is specifically about Gene Panel backend AJAX behavior rather than generic API route reachability.
 
 #### [sms_system_api_sample.md](sms_system_api_sample.md)
 - Feature-specific API sample for the current SMSSystem SBE mainline flow.
@@ -229,7 +248,9 @@ The reading paths below are ordered. Read in sequence unless you already know th
 4. [sa_requirement_breakdown.md](sa_requirement_breakdown.md)
 5. [data_modeling.md](data_modeling.md)
 6. [module_design.md](module_design.md)
-7. [data_architecture_checklist.md](data_architecture_checklist.md)
+7. [api_testing_guide.md](api_testing_guide.md)
+8. [../reference/Gene Panel.md](../reference/Gene%20Panel.md)
+9. [data_architecture_checklist.md](data_architecture_checklist.md)
 
 This path is for requirement decomposition, scope control, and handoff quality.
 
@@ -237,6 +258,8 @@ This path is for requirement decomposition, scope control, and handoff quality.
 1. [overall.md](overall.md)
 2. [idea_md_writing_guide.md](idea_md_writing_guide.md)
 3. [idea_md_role_examples.md](idea_md_role_examples.md)
+4. [api_testing_guide.md](api_testing_guide.md)
+5. [../reference/Gene Panel.md](../reference/Gene%20Panel.md)
 
 ### For LLM DBA
 1. [data_modeling.md](data_modeling.md)

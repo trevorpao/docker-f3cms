@@ -10,6 +10,8 @@
     - [FDD idea.md Writing Guide](guides/idea_md_writing_guide.md)
     - [FDD idea.md Role Examples](guides/idea_md_role_examples.md)
     - [FDD Porting Guide](guides/fdd_porting_guide.md)
+    - [Smoke S Layer Guide](guides/smoke_s_layer_guide.md)
+    - [Smoke Result Tier Rerun Guide](guides/smoke_result_tier_rerun_guide.md)
     - [TestMode Development Guide](guides/testmode_development_guide.md)
     - [SA Requirement Breakdown](guides/sa_requirement_breakdown.md)
     - [Data Modeling](guides/data_modeling.md)
@@ -34,6 +36,8 @@
   - [Feed Function Reference](reference/feed_reference.md)
   - [Reaction Function Reference](reference/reaction_reference.md)
   - [API Route Contract Reference](reference/api_route_reference.md)
+  - [Gene Panel Reference](reference/Gene%20Panel.md)
+  - [Smoke S Layer Reference](reference/smoke_s_layer_reference.md)
   - [Outfit Function Reference](reference/outfit_reference.md)
 - Examples
   - [Cashier Usage](examples/cashier_usage.md)

@@ -143,6 +143,281 @@ curl https://loc.f3cms.com:4433/api/mobile/create_or_ensure \
   --data-urlencode 'insert_user=1'
 ```
 
+## Gene Panel Backend API Examples
+
+When the goal is to verify the Gene Panel backend shell and its most common AJAX flows, start from these routes.
+
+### Recommended Gene Panel Test Order
+
+1. `staff/status`
+2. `menu/get_opts`
+3. `menu/list`
+4. `option/list`
+5. `option/get`
+6. `option/save`
+7. `press/list`
+8. `tag/list`
+
+### Common Response Envelope
+
+These routes normally return the standard Reaction envelope:
+
+```json
+{
+  "code": 1,
+  "data": {},
+  "csrf": "<csrf-token>"
+}
+```
+
+### 1. Staff Login Status
+
+```sh
+curl -k 'https://loc.f3cms.com:4433/api/staff/status'
+```
+
+Logged-in example:
+
+```json
+{
+  "code": 1,
+  "data": {
+    "isLogin": 1,
+    "user": {
+      "id": 1,
+      "name": "Admin",
+      "account": "admin",
+      "email": "admin@example.com",
+      "lang": "tw",
+      "status": "Enabled"
+    }
+  },
+  "csrf": "<csrf-token>"
+}
+```
+
+Logged-out example:
+
+```json
+{
+  "code": 1,
+  "data": {
+    "isLogin": 0
+  },
+  "csrf": "<csrf-token>"
+}
+```
+
+### 2. Menu Option Loader
+
+```sh
+curl -k 'https://loc.f3cms.com:4433/api/menu/get_opts'
+```
+
+Example:
+
+```json
+{
+  "code": 1,
+  "data": [
+    {
+      "id": 1,
+      "title": "系統設定"
+    },
+    {
+      "id": 3,
+      "title": " 　 　選單管理"
+    }
+  ],
+  "csrf": "<csrf-token>"
+}
+```
+
+### 3. Menu List
+
+```sh
+curl -k 'https://loc.f3cms.com:4433/api/menu/list'
+```
+
+Example:
+
+```json
+{
+  "code": 1,
+  "data": {
+    "subset": [
+      {
+        "id": 1,
+        "title": "系統設定",
+        "uri": "/backend/setting",
+        "blank": "No",
+        "icon": "cog",
+        "parent_id": 0,
+        "rows": []
+      }
+    ],
+    "limit": 1000,
+    "pos": 0,
+    "sql": ""
+  },
+  "csrf": "<csrf-token>"
+}
+```
+
+### 4. Option List
+
+```sh
+curl -k 'https://loc.f3cms.com:4433/api/option/list'
+```
+
+Example:
+
+```json
+{
+  "code": 1,
+  "data": {
+    "subset": {
+      "site": {
+        "title": "site",
+        "rows": [
+          {
+            "id": 1,
+            "group": "site",
+            "loader": "Demand",
+            "status": "Enabled",
+            "name": "site_name",
+            "content": "demo 網站"
+          }
+        ]
+      }
+    },
+    "limit": 200,
+    "pos": 0,
+    "sql": ""
+  },
+  "csrf": "<csrf-token>"
+}
+```
+
+### 5. Option Get
+
+```sh
+curl -k 'https://loc.f3cms.com:4433/api/option/get' \
+  --data-urlencode 'id=1'
+```
+
+Example:
+
+```json
+{
+  "code": 1,
+  "data": {
+    "id": 1,
+    "group": "site",
+    "loader": "Demand",
+    "status": "Enabled",
+    "name": "site_name",
+    "content": "demo 網站"
+  },
+  "csrf": "<csrf-token>"
+}
+```
+
+### 6. Option Save
+
+```sh
+curl -k 'https://loc.f3cms.com:4433/api/option/save' \
+  --data-urlencode 'id=1' \
+  --data-urlencode 'group=site' \
+  --data-urlencode 'loader=Demand' \
+  --data-urlencode 'status=Enabled' \
+  --data-urlencode 'name=site_name' \
+  --data-urlencode 'content=demo 網站'
+```
+
+Success example:
+
+```json
+{
+  "code": 1,
+  "data": {
+    "id": 1
+  },
+  "csrf": "<csrf-token>"
+}
+```
+
+Common validation or missing-input example:
+
+```json
+{
+  "code": 8004,
+  "data": [],
+  "csrf": "<csrf-token>"
+}
+```
+
+### 7. Press List
+
+```sh
+curl -k 'https://loc.f3cms.com:4433/api/press/list'
+```
+
+Example:
+
+```json
+{
+  "code": 1,
+  "data": {
+    "subset": [
+      {
+        "id": 12,
+        "title": "首頁輪播公告",
+        "slug": "home-banner-news",
+        "status": "Enabled"
+      }
+    ],
+    "limit": 24,
+    "pos": 0,
+    "sql": ""
+  },
+  "csrf": "<csrf-token>"
+}
+```
+
+### 8. Tag List
+
+```sh
+curl -k 'https://loc.f3cms.com:4433/api/tag/list'
+```
+
+Example:
+
+```json
+{
+  "code": 1,
+  "data": {
+    "subset": [
+      {
+        "id": 7,
+        "title": "熱門",
+        "status": "Enabled"
+      }
+    ],
+    "limit": 24,
+    "pos": 0,
+    "sql": ""
+  },
+  "csrf": "<csrf-token>"
+}
+```
+
+### Notes For Gene Panel Validation
+
+- `www/backend/index.html` depends on these APIs as authenticated AJAX routes rather than SSR page loads.
+- `www/tmpls/` should be treated as Gene Panel frontend templates, so API verification should confirm both route reachability and payload shape.
+- When a backend page fails to render correctly in Gene Panel, confirm `staff/status`, `menu/get_opts`, and the module's `list/get/save` trio before investigating frontend template issues.
+
 ## Docker-Side Route Testing
 
 When a smoke suite must hit the real HTTPS route from inside the Docker network:

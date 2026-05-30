@@ -154,6 +154,38 @@ Review 順序要求：
 - 再列出本輪要同步的共用文件與原因
 - 完成後指出還剩哪些 archive / 收尾缺口
 
+### FDD Commit 模板
+
+請依 Flow Driven Development 為目前 current spec 準備 commit message，並在使用者確認後直接執行 `git commit`。
+
+先套用以下常駐規則：
+
+- 先讀 `document/spec/.current-spec.md` 作為當前目標 spec 的單一真實來源
+- 若 `document/spec/.current-spec.md` 不存在、不可讀或未指向有效 spec，立即中斷，不可猜測目標 spec
+- 先讀 current spec 的 `history.md`，再用 `plan.md`、`check.md` 理解本輪完成範圍與 stage
+- commit message 必須同時根據 spec 文件與目前 git working tree 產生，不可只看文件猜測
+- commit 預設只承接 current spec 範圍內的變更；若 working tree 有 unrelated dirty files，不可默默一起提交
+- 不可在未經使用者確認前直接執行 `git commit`
+- 使用者確認後，應直接用 non-interactive git 指令完成 commit，不用再重問一次
+
+執行順序要求：
+1. 先讀 `document/spec/.current-spec.md`
+2. 確認目前 resolve 到哪個 spec
+3. 再讀該 spec 的 `history.md`、`plan.md`、`check.md`
+4. 檢查 git working tree，區分 current spec 相關變更與 unrelated dirty files
+5. 若有 unrelated dirty files，先詢問要排除還是納入
+6. 依 current spec 與實際變更產生 commit message
+7. 先向使用者展示 commit scope 與 commit message，等待明確確認
+8. 使用者確認後，stage 已確認的檔案並直接執行 `git commit`
+9. 最後回報 commit hash 與最終 subject line
+
+輸出要求：
+- 先明確說明 current spec 是哪個資料夾
+- 再摘要目前 stage 與本輪已完成的最小 slice
+- 清楚區分 in-scope changed files 與 unrelated dirty files
+- 先提出一個主要 commit message，必要時可補一個較短備選
+- 未確認前不要 commit；確認後不要只停在建議，應直接完成 commit
+
 ### FDD Flow reAlign 模板
 
 請以 `document/flow.md` 為基準，校準 `document/flow.llm.md`。
